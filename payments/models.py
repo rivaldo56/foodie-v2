@@ -1,27 +1,29 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.utils.translation import gettext_lazy as _
 from users.models import User
 from bookings.models import Booking
 
 
 class Payment(models.Model):
-    """Payment transactions for bookings"""
+    """
+    Payment transactions for bookings.
+    Tracks payments made by clients.
+    """
     
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-        ('cancelled', 'Cancelled'),
-        ('refunded', 'Refunded'),
-        ('partially_refunded', 'Partially Refunded'),
-    ]
+    class Status(models.TextChoices):
+        PENDING = 'pending', _('Pending')
+        PROCESSING = 'processing', _('Processing')
+        COMPLETED = 'completed', _('Completed')
+        FAILED = 'failed', _('Failed')
+        CANCELLED = 'cancelled', _('Cancelled')
+        REFUNDED = 'refunded', _('Refunded')
+        PARTIALLY_REFUNDED = 'partially_refunded', _('Partially Refunded')
     
-    PAYMENT_METHOD_CHOICES = [
-        ('mpesa', 'M-Pesa'),
-        ('bank_transfer', 'Bank Transfer'),
-        ('cash', 'Cash'),
-    ]
+    class PaymentMethod(models.TextChoices):
+        MPESA = 'mpesa', _('M-Pesa')
+        BANK_TRANSFER = 'bank_transfer', _('Bank Transfer')
+        CASH = 'cash', _('Cash')
     
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='payments')
     client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments_made')
@@ -29,13 +31,18 @@ class Payment(models.Model):
     # Payment details
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
     currency = models.CharField(max_length=3, default='KES')
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='mpesa')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    payment_method = models.CharField(
+        max_length=20, 
+        choices=PaymentMethod.choices, 
+        default=PaymentMethod.MPESA
+    )
+    status = models.CharField(
+        max_length=20, 
+        choices=Status.choices, 
+        default=Status.PENDING
+    )
     
     # External payment provider details
-    stripe_payment_intent_id = models.CharField(max_length=200, blank=True, null=True)
-    stripe_charge_id = models.CharField(max_length=200, blank=True, null=True)
-    paystack_reference = models.CharField(max_length=200, blank=True, null=True)
     external_transaction_id = models.CharField(max_length=200, blank=True, null=True)
     
     # Platform fees
@@ -54,43 +61,53 @@ class Payment(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+        verbose_name = _('payment')
+        verbose_name_plural = _('payments')
     
     def __str__(self):
         return f"Payment #{self.id} - {self.amount} {self.currency} - {self.status}"
     
     @property
     def is_successful(self):
-        return self.status == 'completed'
+        return self.status == self.Status.COMPLETED
 
 
 class Refund(models.Model):
-    """Refund transactions"""
+    """
+    Refund transactions.
+    Tracks refunds issued to clients.
+    """
     
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-        ('cancelled', 'Cancelled'),
-    ]
+    class Status(models.TextChoices):
+        PENDING = 'pending', _('Pending')
+        PROCESSING = 'processing', _('Processing')
+        COMPLETED = 'completed', _('Completed')
+        FAILED = 'failed', _('Failed')
+        CANCELLED = 'cancelled', _('Cancelled')
     
-    REFUND_TYPE_CHOICES = [
-        ('full', 'Full Refund'),
-        ('partial', 'Partial Refund'),
-        ('cancellation', 'Cancellation Refund'),
-    ]
+    class RefundType(models.TextChoices):
+        FULL = 'full', _('Full Refund')
+        PARTIAL = 'partial', _('Partial Refund')
+        CANCELLATION = 'cancellation', _('Cancellation Refund')
     
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='refunds')
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='refunds')
     
     # Refund details
-    refund_type = models.CharField(max_length=20, choices=REFUND_TYPE_CHOICES, default='full')
+    refund_type = models.CharField(
+        max_length=20, 
+        choices=RefundType.choices, 
+        default=RefundType.FULL
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
     reason = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(
+        max_length=20, 
+        choices=Status.choices, 
+        default=Status.PENDING
+    )
     
     # External refund details
-    stripe_refund_id = models.CharField(max_length=200, blank=True, null=True)
     external_refund_id = models.CharField(max_length=200, blank=True, null=True)
     
     # Processing
@@ -104,21 +121,25 @@ class Refund(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+        verbose_name = _('refund')
+        verbose_name_plural = _('refunds')
     
     def __str__(self):
         return f"Refund #{self.id} - {self.amount} - {self.status}"
 
 
 class ChefPayout(models.Model):
-    """Payouts to chefs"""
+    """
+    Payouts to chefs.
+    Tracks payments made to chefs after service completion.
+    """
     
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-        ('cancelled', 'Cancelled'),
-    ]
+    class Status(models.TextChoices):
+        PENDING = 'pending', _('Pending')
+        PROCESSING = 'processing', _('Processing')
+        COMPLETED = 'completed', _('Completed')
+        FAILED = 'failed', _('Failed')
+        CANCELLED = 'cancelled', _('Cancelled')
     
     chef = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payouts')
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='chef_payouts')
@@ -126,8 +147,12 @@ class ChefPayout(models.Model):
     
     # Payout details
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
-    currency = models.CharField(max_length=3, default='USD')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    currency = models.CharField(max_length=3, default='KES')
+    status = models.CharField(
+        max_length=20, 
+        choices=Status.choices, 
+        default=Status.PENDING
+    )
     
     # Bank details (encrypted in production)
     bank_account_number = models.CharField(max_length=50, blank=True)
@@ -135,7 +160,6 @@ class ChefPayout(models.Model):
     bank_name = models.CharField(max_length=100, blank=True)
     
     # External payout details
-    stripe_transfer_id = models.CharField(max_length=200, blank=True, null=True)
     external_payout_id = models.CharField(max_length=200, blank=True, null=True)
     
     # Processing
@@ -149,12 +173,25 @@ class ChefPayout(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+        verbose_name = _('chef payout')
+        verbose_name_plural = _('chef payouts')
     
     def __str__(self):
         return f"Payout #{self.id} - {self.chef.full_name} - {self.amount} {self.currency}"
 
 
 class MpesaPayment(models.Model):
+    """
+    M-Pesa specific payment details.
+    Stores metadata from M-Pesa API.
+    """
+    
+    class Status(models.TextChoices):
+        PENDING = 'pending', _('Pending')
+        COMPLETED = 'completed', _('Completed')
+        FAILED = 'failed', _('Failed')
+        CANCELLED = 'cancelled', _('Cancelled')
+
     payment = models.OneToOneField(Payment, on_delete=models.CASCADE, related_name='mpesa_payment')
     phone_number = models.CharField(max_length=15)
     checkout_request_id = models.CharField(max_length=255, unique=True)
@@ -163,13 +200,8 @@ class MpesaPayment(models.Model):
     transaction_date = models.CharField(max_length=20, blank=True, null=True)
     status = models.CharField(
         max_length=20,
-        choices=[
-            ('pending', 'Pending'),
-            ('completed', 'Completed'),
-            ('failed', 'Failed'),
-            ('cancelled', 'Cancelled'),
-        ],
-        default='pending'
+        choices=Status.choices,
+        default=Status.PENDING
     )
     failure_reason = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -177,6 +209,8 @@ class MpesaPayment(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = _('M-Pesa payment')
+        verbose_name_plural = _('M-Pesa payments')
 
     def __str__(self):
         return f"M-Pesa Payment {self.checkout_request_id} - {self.status}"

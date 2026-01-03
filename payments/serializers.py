@@ -13,14 +13,12 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = [
             'id', 'booking', 'client', 'amount', 'currency', 'payment_method',
-            'status', 'stripe_payment_intent_id', 'stripe_charge_id',
-            'paystack_reference', 'external_transaction_id', 'platform_fee',
+            'status', 'external_transaction_id', 'platform_fee',
             'processing_fee', 'chef_payout', 'payment_metadata',
             'failure_reason', 'created_at', 'updated_at', 'processed_at'
         ]
         read_only_fields = [
-            'id', 'client', 'stripe_payment_intent_id', 'stripe_charge_id',
-            'paystack_reference', 'external_transaction_id', 'platform_fee',
+            'id', 'client', 'external_transaction_id', 'platform_fee',
             'processing_fee', 'chef_payout', 'payment_metadata',
             'failure_reason', 'created_at', 'updated_at', 'processed_at'
         ]
@@ -94,11 +92,11 @@ class RefundSerializer(serializers.ModelSerializer):
         model = Refund
         fields = [
             'id', 'payment', 'booking', 'refund_type', 'amount', 'reason',
-            'status', 'stripe_refund_id', 'external_refund_id', 'processed_by',
+            'status', 'external_refund_id', 'processed_by',
             'admin_notes', 'created_at', 'updated_at', 'processed_at'
         ]
         read_only_fields = [
-            'id', 'stripe_refund_id', 'external_refund_id', 'processed_by',
+            'id', 'external_refund_id', 'processed_by',
             'admin_notes', 'created_at', 'updated_at', 'processed_at'
         ]
 
@@ -172,11 +170,11 @@ class ChefPayoutSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'chef', 'booking', 'payment', 'amount', 'currency', 'status',
             'bank_account_number', 'bank_routing_number', 'bank_name',
-            'stripe_transfer_id', 'external_payout_id', 'processed_by',
+            'external_payout_id', 'processed_by',
             'admin_notes', 'created_at', 'updated_at', 'processed_at'
         ]
         read_only_fields = [
-            'id', 'chef', 'booking', 'payment', 'stripe_transfer_id',
+            'id', 'chef', 'booking', 'payment',
             'external_payout_id', 'processed_by', 'admin_notes',
             'created_at', 'updated_at', 'processed_at'
         ]
@@ -235,24 +233,3 @@ class ChefPayoutCreateSerializer(serializers.ModelSerializer):
         )
         
         return payout
-
-
-class PaymentIntentSerializer(serializers.Serializer):
-    """Serializer for creating Stripe payment intent"""
-    booking_id = serializers.IntegerField()
-    
-    def validate_booking_id(self, value):
-        from bookings.models import Booking
-        try:
-            booking = Booking.objects.get(id=value)
-            user = self.context['request'].user
-            
-            if booking.client != user:
-                raise serializers.ValidationError("You can only create payment intent for your own bookings")
-            
-            if booking.status != 'confirmed':
-                raise serializers.ValidationError("Booking must be confirmed before payment")
-            
-            return value
-        except Booking.DoesNotExist:
-            raise serializers.ValidationError("Booking not found")

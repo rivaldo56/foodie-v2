@@ -36,7 +36,7 @@ export default function PersonalizedFeed() {
     const [hasMore, setHasMore] = useState(true);
     const observerTarget = useRef<HTMLDivElement>(null);
 
-    const trackView = async (chefId: number) => {
+    const trackView = useCallback(async (chefId: number) => {
         if (!isAuthenticated) return;
 
         try {
@@ -57,9 +57,9 @@ export default function PersonalizedFeed() {
         } catch (error) {
             console.error('Failed to track view:', error);
         }
-    };
+    }, [isAuthenticated]);
 
-    const fetchRecommendations = async (pageNum: number = 1) => {
+    const fetchRecommendations = useCallback(async (pageNum: number = 1) => {
         if (!isAuthenticated) return;
 
         setIsLoading(true);
@@ -89,9 +89,9 @@ export default function PersonalizedFeed() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [isAuthenticated]);
 
-    const fetchTrending = async () => {
+    const fetchTrending = useCallback(async () => {
         setIsLoading(true);
         try {
             const response = await fetch(
@@ -108,7 +108,7 @@ export default function PersonalizedFeed() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         if (activeTab === 'foryou' && isAuthenticated) {
@@ -116,7 +116,7 @@ export default function PersonalizedFeed() {
         } else if (activeTab === 'trending') {
             fetchTrending();
         }
-    }, [activeTab, isAuthenticated]);
+    }, [activeTab, isAuthenticated, fetchRecommendations, fetchTrending]);
 
     // Infinite scroll
     useEffect(() => {
@@ -135,7 +135,7 @@ export default function PersonalizedFeed() {
         }
 
         return () => observer.disconnect();
-    }, [hasMore, isLoading, page, activeTab]);
+    }, [hasMore, isLoading, page, activeTab, fetchRecommendations]);
 
     // Track views when chef cards come into view
     useEffect(() => {
@@ -159,7 +159,7 @@ export default function PersonalizedFeed() {
         });
 
         return () => observers.forEach((obs) => obs.disconnect());
-    }, [recommendations]);
+    }, [recommendations, trackView]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#1a0f0f] via-[#0f0c0a] to-black">

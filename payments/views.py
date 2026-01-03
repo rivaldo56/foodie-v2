@@ -7,11 +7,11 @@ from django.http import HttpResponse
 import json
 from .models import Payment, Refund, ChefPayout, MpesaPayment
 from .serializers import PaymentSerializer, RefundSerializer, ChefPayoutSerializer
-from .services import PaymentProcessingService, WebhookService
 from .mpesa_service import MpesaPaymentService
 
 
 class PaymentListView(generics.ListAPIView):
+    """List payments for the authenticated user"""
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -20,11 +20,13 @@ class PaymentListView(generics.ListAPIView):
 
 
 class PaymentCreateView(generics.CreateAPIView):
+    """Create a new payment"""
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class PaymentDetailView(generics.RetrieveAPIView):
+    """Retrieve payment details"""
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -32,48 +34,8 @@ class PaymentDetailView(generics.RetrieveAPIView):
         return Payment.objects.filter(client=self.request.user)
 
 
-# Stripe payment intent disabled - using M-Pesa only
-# class CreatePaymentIntentView(generics.CreateAPIView):
-#     permission_classes = [permissions.IsAuthenticated]
-#     
-#     def post(self, request, *args, **kwargs):
-#         booking_id = request.data.get('booking_id')
-#         payment_method_id = request.data.get('payment_method_id')
-#         
-#         if not booking_id:
-#             return Response(
-#                 {'error': 'booking_id is required'}, 
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-#         
-#         result = PaymentProcessingService.process_booking_payment(
-#             booking_id=booking_id,
-#             payment_method_id=payment_method_id
-#         )
-#         
-#         if result['success']:
-#             return Response(result, status=status.HTTP_201_CREATED)
-#         else:
-#             return Response(result, status=status.HTTP_400_BAD_REQUEST)
-
-
-class ConfirmPaymentView(generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def post(self, request, *args, **kwargs):
-        payment_intent_id = request.data.get('payment_intent_id')
-        
-        if not payment_intent_id:
-            return Response(
-                {'error': 'payment_intent_id is required'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # This would be used for additional payment confirmation if needed
-        return Response({'message': 'Payment confirmation handled automatically'})
-
-
 class RefundListView(generics.ListAPIView):
+    """List refunds for the authenticated user"""
     serializer_class = RefundSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -82,11 +44,13 @@ class RefundListView(generics.ListAPIView):
 
 
 class RefundCreateView(generics.CreateAPIView):
+    """Create a new refund request"""
     serializer_class = RefundSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class RefundDetailView(generics.RetrieveAPIView):
+    """Retrieve refund details"""
     serializer_class = RefundSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -95,14 +59,17 @@ class RefundDetailView(generics.RetrieveAPIView):
 
 
 class ProcessRefundView(generics.UpdateAPIView):
+    """Process a refund (Admin/Staff only)"""
     serializer_class = RefundSerializer
     permission_classes = [permissions.IsAuthenticated]
+    # TODO: Add IsAdmin or IsStaff permission
     
     def get_queryset(self):
         return Refund.objects.all()
 
 
 class ChefPayoutListView(generics.ListAPIView):
+    """List payouts for the authenticated chef"""
     serializer_class = ChefPayoutSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -111,11 +78,13 @@ class ChefPayoutListView(generics.ListAPIView):
 
 
 class ChefPayoutCreateView(generics.CreateAPIView):
+    """Create a new payout request"""
     serializer_class = ChefPayoutSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class ChefPayoutDetailView(generics.RetrieveAPIView):
+    """Retrieve payout details"""
     serializer_class = ChefPayoutSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -124,8 +93,10 @@ class ChefPayoutDetailView(generics.RetrieveAPIView):
 
 
 class ProcessPayoutView(generics.UpdateAPIView):
+    """Process a payout (Admin/Staff only)"""
     serializer_class = ChefPayoutSerializer
     permission_classes = [permissions.IsAuthenticated]
+    # TODO: Add IsAdmin or IsStaff permission
     
     def get_queryset(self):
         return ChefPayout.objects.all()
@@ -133,6 +104,7 @@ class ProcessPayoutView(generics.UpdateAPIView):
 
 # M-Pesa Payment Views
 class MpesaPaymentView(generics.CreateAPIView):
+    """Initiate M-Pesa payment"""
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, *args, **kwargs):
@@ -155,6 +127,7 @@ class MpesaPaymentView(generics.CreateAPIView):
 
 
 class MpesaStatusView(generics.RetrieveAPIView):
+    """Check M-Pesa payment status"""
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request, mpesa_payment_id, *args, **kwargs):
@@ -169,6 +142,7 @@ class MpesaStatusView(generics.RetrieveAPIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class MpesaCallbackView(generics.CreateAPIView):
+    """Handle M-Pesa callback"""
     permission_classes = [permissions.AllowAny]
     
     def post(self, request, *args, **kwargs):
@@ -180,20 +154,3 @@ class MpesaCallbackView(generics.CreateAPIView):
             return HttpResponse("OK", status=200)
         except Exception as e:
             return HttpResponse("Error", status=400)
-
-
-# Stripe webhook disabled - using M-Pesa only
-# @method_decorator(csrf_exempt, name='dispatch')
-# class StripeWebhookView(generics.CreateAPIView):
-#     permission_classes = [permissions.AllowAny]
-#     
-#     def post(self, request, *args, **kwargs):
-#         payload = request.body
-#         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-#         
-#         result = WebhookService.handle_stripe_webhook(payload, sig_header)
-#         
-#         if result['success']:
-#             return HttpResponse("OK", status=200)
-#         else:
-#             return HttpResponse("Error", status=400)

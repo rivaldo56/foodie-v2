@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Compass, Plus, MessageCircle, UserRound } from 'lucide-react';
+import { LayoutDashboard, Compass, Plus, MessageCircle, UserRound, ShoppingBasket } from 'lucide-react';
 
 const CHEF_LINKS = [
   { href: '/chef/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/chef/market', label: 'Market', icon: ShoppingBasket },
   { href: '/chef/discover', label: 'Discover', icon: Compass },
   { href: '/chef/create', label: 'New Post', icon: Plus },
   { href: '/chef/messages', label: 'Messages', icon: MessageCircle },
@@ -27,9 +28,8 @@ export default function ChefBottomNav() {
               className={`flex flex-1 flex-col items-center gap-1 rounded-full px-2 py-1 transition ${active ? 'text-white' : 'hover:text-white'}`}
             >
               <span
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition ${
-                  active ? 'bg-orange-500 text-white shadow-glow' : 'bg-white/10 text-white/70'
-                }`}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition ${active ? 'bg-orange-500 text-white shadow-glow' : 'bg-white/10 text-white/70'
+                  }`}
               >
                 <Icon className="h-4 w-4" />
               </span>

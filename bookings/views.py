@@ -27,6 +27,10 @@ class BookingListView(generics.ListAPIView):
 
 
 class BookingCreateView(generics.CreateAPIView):
+    """
+    Create a new booking.
+    Calculates initial pricing based on chef's hourly rate and selected menu items.
+    """
     serializer_class = BookingCreateSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -42,22 +46,51 @@ class BookingCreateView(generics.CreateAPIView):
 
 
 class BookingDetailView(generics.RetrieveAPIView):
+    """Retrieve booking details"""
     serializer_class = BookingSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return Booking.objects.filter(client=self.request.user)
+        user = self.request.user
+        if user.role == 'chef':
+            from chefs.models import ChefProfile
+            try:
+                chef_profile = ChefProfile.objects.get(user=user)
+                return Booking.objects.filter(chef=chef_profile)
+            except ChefProfile.DoesNotExist:
+                return Booking.objects.none()
+        else:
+            return Booking.objects.filter(client=user)
 
 
 class BookingUpdateView(generics.UpdateAPIView):
+    """Update booking details (client only, before confirmation)"""
     serializer_class = BookingUpdateSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return Booking.objects.filter(client=self.request.user)
+        return Booking.objects.filter(client=self.request.user, status='pending')
 
 
 class BookingStatusUpdateView(generics.UpdateAPIView):
+    """Update booking status (chef only)"""
+    serializer_class = BookingStatusUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'chef':
+            from chefs.models import ChefProfile
+            try:
+                chef_profile = ChefProfile.objects.get(user=user)
+                return Booking.objects.filter(chef=chef_profile)
+            except ChefProfile.DoesNotExist:
+                return Booking.objects.none()
+        return Booking.objects.none()
+
+
+class BookingCancelView(generics.UpdateAPIView):
+    """Cancel a booking"""
     serializer_class = BookingStatusUpdateSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -72,71 +105,16 @@ class BookingStatusUpdateView(generics.UpdateAPIView):
                 return Booking.objects.none()
         else:
             return Booking.objects.filter(client=user)
-    
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        
-        # Update timestamps based on status
-        new_status = serializer.validated_data.get('status', instance.status)
-        if new_status == 'confirmed' and instance.status != 'confirmed':
-            from django.utils import timezone
-            instance.confirmed_at = timezone.now()
-        elif new_status == 'completed' and instance.status != 'completed':
-            from django.utils import timezone
-            instance.completed_at = timezone.now()
-        elif new_status == 'cancelled' and instance.status != 'cancelled':
-            from django.utils import timezone
-            instance.cancelled_at = timezone.now()
-        
-        self.perform_update(serializer)
-        return Response(BookingSerializer(instance).data)
-
-
-class BookingCancelView(generics.UpdateAPIView):
-    serializer_class = BookingStatusUpdateSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        return Booking.objects.filter(client=self.request.user)
-    
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data={'status': 'cancelled'}, partial=True)
-        serializer.is_valid(raise_exception=True)
-        
-        from django.utils import timezone
-        instance.cancelled_at = timezone.now()
-        self.perform_update(serializer)
-        
-        return Response(BookingSerializer(instance).data)
-
-
-class MenuItemListView(generics.ListAPIView):
-    queryset = MenuItem.objects.all()
-    serializer_class = MenuItemSerializer
-    permission_classes = [permissions.AllowAny]
-
-
-class MenuItemDetailView(generics.RetrieveAPIView):
-    queryset = MenuItem.objects.all()
-    serializer_class = MenuItemSerializer
-    permission_classes = [permissions.AllowAny]
-
-
-class ChefMenuItemsView(generics.ListAPIView):
-    serializer_class = MenuItemSerializer
-    permission_classes = [permissions.AllowAny]
-    
-    def get_queryset(self):
-        chef_id = self.kwargs['chef_id']
-        return MenuItem.objects.filter(chef_id=chef_id)
+            
+    def perform_update(self, serializer):
+        serializer.save(status='cancelled')
 
 
 class MenuItemCreateView(generics.CreateAPIView):
-    """Create menu items for chefs with Cloudinary upload support"""
+    """
+    Create menu items for chefs.
+    Supports image upload via Cloudinary.
+    """
     serializer_class = MenuItemSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -230,6 +208,40 @@ class MenuItemDeleteView(generics.DestroyAPIView):
         except ChefProfile.DoesNotExist:
             return MenuItem.objects.none()
 
+
+
+class MyMenuItemListView(generics.ListAPIView):
+    """List menu items for the authenticated chef"""
+    serializer_class = MenuItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        from chefs.models import ChefProfile
+        try:
+            chef_profile = ChefProfile.objects.get(user=self.request.user)
+            return MenuItem.objects.filter(chef=chef_profile)
+        except ChefProfile.DoesNotExist:
+            return MenuItem.objects.none()
+
+
+class MenuItemDetailView(generics.RetrieveAPIView):
+    """Retrieve menu item details"""
+    serializer_class = MenuItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Allow viewing any menu item, but maybe restrict editing in other views
+        return MenuItem.objects.all()
+
+
+class ChefMenuItemsView(generics.ListAPIView):
+    """List menu items for a specific chef (publicly accessible)"""
+    serializer_class = MenuItemSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        chef_id = self.kwargs['chef_id']
+        return MenuItem.objects.filter(chef_id=chef_id)
 
 
 class BookingMenuItemListView(generics.ListAPIView):

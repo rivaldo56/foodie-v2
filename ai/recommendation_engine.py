@@ -227,7 +227,6 @@ class RecommendationEngine:
         except Exception as e:
             logger.error(f"Error updating preferences: {str(e)}")
 
-
 class TrendingCalculator:
     """Calculate trending chefs/meals"""
     

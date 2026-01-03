@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User, ClientProfile
+from .models import User, ClientProfile, ClientOnboarding
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -116,3 +116,15 @@ class PasswordChangeSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError("Old password is incorrect")
         return value
+
+
+class ClientOnboardingSerializer(serializers.ModelSerializer):
+    """Serializer for client onboarding data"""
+
+    class Meta:
+        model = ClientOnboarding
+        fields = [
+            'preferred_cuisines', 'allergies', 'budget_range',
+            'occasion_types', 'dining_frequency', 'location',
+            'dietary_preferences', 'completed'
+        ]

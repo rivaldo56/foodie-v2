@@ -91,6 +91,8 @@ INSTALLED_APPS = [
     'chat',
     'payments',
     'ai',
+    'farmers',
+    'market',
 ]
 
 MIDDLEWARE = [
@@ -321,3 +323,13 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='rivaldonassif@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = 'rivaldonassif@gmail.com'
+SERVER_EMAIL = 'rivaldonassif@gmail.com'

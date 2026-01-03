@@ -273,7 +273,7 @@ class ChefRecommendationSerializer(serializers.Serializer):
     cuisine_preferences = serializers.ListField(child=serializers.CharField(), required=False, default=list)
     budget_range = serializers.DictField(required=False, default=dict)
     experience_level = serializers.ChoiceField(
-        choices=[('any', 'Any')] + list(ChefProfileSerializer.Meta.model.EXPERIENCE_CHOICES),
+        choices=[('any', 'Any')] + list(ChefProfileSerializer.Meta.model.ExperienceLevel.choices),
         required=False,
         default='any'
     )

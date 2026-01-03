@@ -6,10 +6,8 @@ from users.permissions import IsChef, IsClient
 from .models import ChefProfile, ChefCertification, ChefReview, FavoriteChef, ChefEvent
 from .serializers import (
     ChefProfileSerializer, ChefCertificationSerializer, ChefReviewSerializer,
-    FavoriteChefSerializer, ChefEventSerializer
+    FavoriteChefSerializer, ChefEventSerializer, ChefOnboardingSerializer
 )
-from bookings.models import MenuItem
-from bookings.serializers import MenuItemSerializer
 
 
 class ChefListView(generics.ListAPIView):
@@ -37,7 +35,10 @@ class ChefDetailView(generics.RetrieveAPIView):
 
 
 class ChefProfileView(generics.RetrieveUpdateAPIView):
-    """Chef profile management"""
+    """
+    Chef profile management.
+    Allows chefs to view and update their profile details.
+    """
     serializer_class = ChefProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsChef]
     
@@ -52,22 +53,20 @@ class ChefProfileView(generics.RetrieveUpdateAPIView):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         
-        logger.info(f"Received update request with data: {request.data}")
+        logger.info(f"Received update request for chef {instance.id}")
         
         # Handle profile_picture update on User model
         if 'profile_picture' in request.data:
             user = request.user
             profile_picture_url = request.data.get('profile_picture')
-            logger.info(f"Updating user profile_picture to: {profile_picture_url}")
             user.profile_picture = profile_picture_url
             user.save()
-            logger.info(f"User profile_picture saved successfully")
+            logger.info(f"Updated user profile_picture for user {user.id}")
         
         # Handle bio update on ChefProfile
         if 'bio' in request.data:
             instance.bio = request.data.get('bio')
             instance.save()
-            logger.info(f"ChefProfile bio updated: {instance.bio}")
         
         # Return updated serializer data
         serializer = self.get_serializer(instance)
@@ -121,28 +120,6 @@ class ChefCertificationDetailView(generics.RetrieveUpdateDestroyAPIView):
         return ChefCertification.objects.filter(chef__user=self.request.user)
 
 
-class MenuItemListView(generics.ListAPIView):
-    """List menu items"""
-    permission_classes = [permissions.AllowAny]
-    serializer_class = MenuItemSerializer
-    
-    def get_queryset(self):
-        return MenuItem.objects.all()
-
-
-class MenuItemCreateView(generics.CreateAPIView):
-    """Create menu item"""
-    permission_classes = [permissions.IsAuthenticated, IsChef]
-    serializer_class = MenuItemSerializer
-
-
-class MenuItemDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Menu item detail"""
-    permission_classes = [permissions.IsAuthenticated, IsChef]
-    serializer_class = MenuItemSerializer
-    
-    def get_queryset(self):
-        return MenuItem.objects.filter(chef__user=self.request.user)
 
 
 class FavoriteChefToggleView(generics.GenericAPIView):
@@ -205,3 +182,24 @@ class ChefEventViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         chef_profile = ChefProfile.objects.get(user=self.request.user)
         serializer.save(chef=chef_profile)
+
+
+class ChefOnboardingView(generics.RetrieveUpdateAPIView):
+    """
+    Retrieve or update chef onboarding data.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsChef]
+    serializer_class = ChefOnboardingSerializer
+
+    def get_object(self):
+        from .models import ChefOnboarding
+        obj, created = ChefOnboarding.objects.get_or_create(user=self.request.user)
+        return obj
+
+    def perform_update(self, serializer):
+        from users.models import User
+        # Set status to in_progress if currently not_started
+        if self.request.user.onboarding_status == User.OnboardingStatus.NOT_STARTED:
+            self.request.user.onboarding_status = User.OnboardingStatus.IN_PROGRESS
+            self.request.user.save()
+        serializer.save()

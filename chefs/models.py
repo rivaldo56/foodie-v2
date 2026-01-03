@@ -1,25 +1,32 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.translation import gettext_lazy as _
 from users.models import User
 
 
 class ChefProfile(models.Model):
-    """Extended profile for chefs"""
+    """
+    Extended profile for chefs.
+    Stores professional details, availability, and ratings.
+    """
     
-    EXPERIENCE_CHOICES = [
-        ('beginner', '0-2 years'),
-        ('intermediate', '3-5 years'),
-        ('experienced', '6-10 years'),
-        ('expert', '10+ years'),
-    ]
+    class ExperienceLevel(models.TextChoices):
+        BEGINNER = 'beginner', _('0-2 years')
+        INTERMEDIATE = 'intermediate', _('3-5 years')
+        EXPERIENCED = 'experienced', _('6-10 years')
+        EXPERT = 'expert', _('10+ years')
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='chef_profile')
     bio = models.TextField(max_length=1000, blank=True)
-    specialties = models.JSONField(default=list, blank=True)  # ['italian', 'french', 'vegan', etc.]
-    experience_level = models.CharField(max_length=20, choices=EXPERIENCE_CHOICES, default='beginner')
+    specialties = models.JSONField(default=list, blank=True)  # e.g., ['italian', 'french']
+    experience_level = models.CharField(
+        max_length=20, 
+        choices=ExperienceLevel.choices, 
+        default=ExperienceLevel.BEGINNER
+    )
     years_of_experience = models.PositiveIntegerField(default=0)
     hourly_rate = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)
-    service_radius = models.PositiveIntegerField(default=10, help_text="Service radius in miles")
+    service_radius = models.PositiveIntegerField(default=10, help_text=_("Service radius in miles"))
     
     # Location
     address = models.TextField(blank=True)
@@ -47,13 +54,15 @@ class ChefProfile(models.Model):
     
     # Portfolio
     portfolio_images = models.JSONField(default=list, blank=True)  # URLs to images
-    certifications = models.JSONField(default=list, blank=True)  # Culinary certifications
+    certifications = models.JSONField(default=list, blank=True)  # Culinary certifications (legacy field)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         ordering = ['-average_rating', '-total_bookings']
+        verbose_name = _('chef profile')
+        verbose_name_plural = _('chef profiles')
     
     def __init__(self, *args, **kwargs):
         # Support experience_years as alias for years_of_experience
@@ -62,7 +71,7 @@ class ChefProfile(models.Model):
         super().__init__(*args, **kwargs)
     
     def __str__(self):
-        return f"Chef {self.user.full_name} - {self.experience_level}"
+        return f"Chef {self.user.full_name} - {self.get_experience_level_display()}"
     
     @property
     def rating_display(self):
@@ -80,6 +89,7 @@ class ChefProfile(models.Model):
         if hasattr(self, 'dish_count'):
             dish_count = self.dish_count
         else:
+            # Avoid circular import
             from bookings.models import MenuItem
             dish_count = MenuItem.objects.filter(chef=self).count()
         
@@ -93,7 +103,10 @@ class ChefProfile(models.Model):
 
 
 class ChefCertification(models.Model):
-    """Chef certifications and credentials"""
+    """
+    Chef certifications and credentials.
+    Stores verified documents for chefs.
+    """
     
     chef = models.ForeignKey(ChefProfile, on_delete=models.CASCADE, related_name='chef_certifications')
     name = models.CharField(max_length=200)
@@ -109,7 +122,10 @@ class ChefCertification(models.Model):
 
 
 class ChefReview(models.Model):
-    """Reviews for chefs"""
+    """
+    Reviews for chefs.
+    Links a client, a chef, and a specific booking.
+    """
     
     chef = models.ForeignKey(ChefProfile, on_delete=models.CASCADE, related_name='reviews')
     client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chef_reviews_given')
@@ -144,7 +160,10 @@ class ChefReview(models.Model):
 
 
 class FavoriteChef(models.Model):
-    """User's favorite chefs"""
+    """
+    User's favorite chefs.
+    Allows clients to bookmark chefs they like.
+    """
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_chefs')
     chef = models.ForeignKey(ChefProfile, on_delete=models.CASCADE, related_name='favorited_by')
@@ -159,7 +178,10 @@ class FavoriteChef(models.Model):
 
 
 class ChefEvent(models.Model):
-    """Personal events for chefs (e.g., vacation, prep time)"""
+    """
+    Personal events for chefs (e.g., vacation, prep time).
+    Used to block off time on their calendar.
+    """
     
     chef = models.ForeignKey(ChefProfile, on_delete=models.CASCADE, related_name='events')
     title = models.CharField(max_length=200)
@@ -176,3 +198,27 @@ class ChefEvent(models.Model):
         
     def __str__(self):
         return f"{self.chef.user.full_name} - {self.title}"
+
+
+class ChefOnboarding(models.Model):
+    """
+    Temporary storage for chef onboarding data.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='chef_onboarding')
+    culinary_paths = models.JSONField(default=list, blank=True)
+    specialties = models.JSONField(default=list, blank=True)
+    experience_level = models.CharField(max_length=50, blank=True)
+    portfolio_media = models.JSONField(default=list, blank=True)  # List of URLs
+    availability_options = models.JSONField(default=list, blank=True)
+    pricing_tier = models.CharField(max_length=50, blank=True)
+    certifications = models.JSONField(default=list, blank=True)
+    identity_verification_status = models.CharField(
+        max_length=20, 
+        choices=[('pending', 'Pending'), ('verified', 'Verified'), ('rejected', 'Rejected')],
+        default='pending'
+    )
+    completed = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Onboarding - {self.user.email}"

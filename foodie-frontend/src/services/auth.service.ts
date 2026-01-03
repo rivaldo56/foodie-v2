@@ -11,7 +11,7 @@ export interface RegisterData {
     password: string;
     password2: string;
     full_name: string;
-    role?: 'client' | 'chef';
+    role?: 'client' | 'chef' | 'farmer' | 'business';
     phone_number?: string;
 }
 
@@ -24,6 +24,7 @@ export interface User {
     phone_number?: string;
     profile_image?: string;
     profile_picture?: string;
+    onboarding_status?: 'not_started' | 'in_progress' | 'complete';
 }
 
 export const authService = {

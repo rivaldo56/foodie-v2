@@ -5,12 +5,20 @@ from .serializers import ChatRoomSerializer, MessageSerializer, MessageCreateSer
 
 
 class ChatRoomListView(generics.ListAPIView):
+    """
+    List all chat rooms for the authenticated user.
+    Returns rooms where the user is either the client or the chef.
+    """
     serializer_class = ChatRoomSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
         user = self.request.user
-        return ChatRoom.objects.filter(client=user) | ChatRoom.objects.filter(chef=user)
+        # Use Q objects for better query construction
+        from django.db.models import Q
+        return ChatRoom.objects.filter(
+            Q(client=user) | Q(chef=user)
+        ).select_related('client', 'chef', 'booking').prefetch_related('messages')
 
 
 class ChatRoomCreateView(generics.CreateAPIView):

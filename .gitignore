@@ -66,3 +66,7 @@ Thumbs.db
 *.md
 !README.md
 !foodie-frontend/README.md
+
+# Scripts
+verify_refactor.py
+

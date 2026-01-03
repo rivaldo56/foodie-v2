@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ChefProfile, ChefCertification, ChefReview, FavoriteChef, ChefEvent
+from .models import ChefProfile, ChefCertification, ChefReview, FavoriteChef, ChefEvent, ChefOnboarding
 from users.serializers import UserSerializer
 
 
@@ -123,7 +123,7 @@ class ChefSearchSerializer(serializers.Serializer):
     min_rating = serializers.DecimalField(max_digits=3, decimal_places=2, required=False, min_value=0, max_value=5)
     max_hourly_rate = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, min_value=0)
     min_hourly_rate = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, min_value=0)
-    experience_level = serializers.ChoiceField(choices=ChefProfile.EXPERIENCE_CHOICES, required=False)
+    experience_level = serializers.ChoiceField(choices=ChefProfile.ExperienceLevel.choices, required=False)
     is_available = serializers.BooleanField(required=False)
     is_verified = serializers.BooleanField(required=False)
 
@@ -168,3 +168,15 @@ class ChefEventSerializer(serializers.ModelSerializer):
         if data['end_time'] < data['start_time']:
             raise serializers.ValidationError("End time must be after start time")
         return data
+
+
+class ChefOnboardingSerializer(serializers.ModelSerializer):
+    """Serializer for chef onboarding data"""
+
+    class Meta:
+        model = ChefOnboarding
+        fields = [
+            'culinary_paths', 'specialties', 'experience_level',
+            'portfolio_media', 'availability_options', 'pricing_tier',
+            'certifications', 'identity_verification_status', 'completed'
+        ]

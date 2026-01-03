@@ -13,6 +13,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import BottomDock from '@/components/BottomDock';
 import ChatAssistantFab from '@/components/ChatAssistantFab';
 import BackButton from '@/components/BackButton';
+import CIYModal from '@/components/modals/CIYModal';
 import { Clock, Users, Flame, Info, ChevronLeft, Minus, Plus, ShoppingBag, Star, Utensils, MapPin, Sparkles, Timer } from 'lucide-react';
 
 export default function MealDetailPage() {
@@ -27,6 +28,7 @@ export default function MealDetailPage() {
   const [ordering, setOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [showCIYModal, setShowCIYModal] = useState(false);
 
   const highlightBadges = useMemo(() => {
     return [
@@ -184,6 +186,14 @@ export default function MealDetailPage() {
                 {ordering ? 'Inaandaliwa...' : orderSuccess ? 'Imewekwa!' : 'Weka nafasi sasa'}
               </button>
 
+              <button
+                onClick={() => setShowCIYModal(true)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-surface-highlight border border-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/5 transition"
+              >
+                <ShoppingBag className="h-4 w-4 text-orange-500" />
+                Cook It Yourself (CIY)
+              </button>
+
               <Link
                 href={`/meals/${meal.id}/review`}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-surface-highlight px-6 py-3 text-sm font-semibold text-muted hover:text-white"
@@ -201,6 +211,15 @@ export default function MealDetailPage() {
             </div>
           </aside>
         </section>
+
+        <CIYModal
+          isOpen={showCIYModal}
+          onClose={() => setShowCIYModal(false)}
+          mealName={meal.name}
+          mealImage={meal.image}
+          ingredients={['Fresh Tomatoes', 'Red Onions', 'Garlic', 'Basil', 'Olive Oil']} // Mock ingredients
+          price={Math.round(Number(meal.price) * 0.6)} // 60% of meal price
+        />
 
         <section className="rounded-3xl bg-surface-elevated soft-border shadow-glow p-6 space-y-6">
           <header className="flex flex-col gap-2">
@@ -224,7 +243,7 @@ export default function MealDetailPage() {
 
       <ChatAssistantFab />
       <BottomDock />
-    </div>
+    </div >
   );
 }
 

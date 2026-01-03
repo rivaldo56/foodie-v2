@@ -25,4 +25,9 @@ urlpatterns = [
     path('admin/chefs/verification/', admin_views.AdminChefVerificationView.as_view(), name='admin-chef-verification'),
     path('admin/chefs/<int:chef_id>/verify/', admin_views.AdminChefVerificationView.as_view(), name='admin-verify-chef'),
     path('admin/bookings/', admin_views.AdminBookingOversightView.as_view(), name='admin-bookings'),
+    
+    # Onboarding
+    path('onboarding/status/', views.OnboardingStatusView.as_view(), name='onboarding-status'),
+    path('onboarding/client/', views.ClientOnboardingView.as_view(), name='client-onboarding'),
+    path('onboarding/complete/', views.OnboardingCompleteView.as_view(), name='onboarding-complete'),
 ]

@@ -124,7 +124,7 @@
     opacity: 0.85;
   }
 
-  .gradient-border > * {
+  .gradient-border>* {
     position: relative;
     z-index: 1;
   }

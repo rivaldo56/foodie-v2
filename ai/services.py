@@ -371,69 +371,7 @@ class GeminiAIService:
                 'confidence_score': 0.0
             }
     
-        
-        context = self._build_user_context(user)
-        
-        prompt = f"""
-        As a culinary AI expert, create personalized menu recommendations:
-        
-        User Context: {context}
-        Request Details: {preferences}
-        
-        Please suggest a complete menu with the following JSON format:
-        {{
-            "menu": {{
-                "appetizers": [
-                    {{"name": "dish name", "description": "brief description", "dietary_tags": ["vegetarian", "gluten-free"]}}
-                ],
-                "main_courses": [
-                    {{"name": "dish name", "description": "brief description", "dietary_tags": []}}
-                ],
-                "desserts": [
-                    {{"name": "dish name", "description": "brief description", "dietary_tags": []}}
-                ]
-            }},
-            "reasoning": "Why these dishes work well together",
-            "dietary_compliance": "How the menu meets dietary requirements",
-            "estimated_cost": "Cost estimate per person"
-        }}
-        
-        Consider dietary restrictions, cuisine preferences, occasion, and budget.
-        """
-        
-        try:
-            start_time = time.time()
-            response = self.model.generate_content(prompt)
-            processing_time = time.time() - start_time
-            
-            result = self._parse_ai_response(response.text)
-            
-            recommendation = AIRecommendation.objects.create(
-                user=user,
-                recommendation_type='menu',
-                user_preferences=preferences,
-                recommendations=[result],
-                confidence_score=self._calculate_confidence_score(result),
-                reasoning=result.get('reasoning', '')
-            )
-            
-            return {
-                'recommendation_id': recommendation.id,
-                'menu': result.get('menu', {}),
-                'reasoning': result.get('reasoning', ''),
-                'dietary_compliance': result.get('dietary_compliance', ''),
-                'estimated_cost': result.get('estimated_cost', ''),
-                'confidence_score': recommendation.confidence_score,
-                'processing_time': processing_time
-            }
-            
-        except Exception as e:
-            return {
-                'error': str(e),
-                'menu': {},
-                'reasoning': 'Failed to generate menu recommendations'
-            }
-    
+
     def chat_with_session(self, session: ChatSession, user_message: str) -> Dict[str, Any]:
         """Handle AI chat conversation with a session"""
         

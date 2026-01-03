@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setTokenCookie(null);
+    document.cookie = `user_role=; path=/; max-age=0; SameSite=Lax`;
     setToken(null);
     setUser(null);
   };
@@ -136,15 +137,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(newUser));
       setTokenCookie(newToken);
+      document.cookie = `user_role=${newUser.role}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
       console.log('[Foodie] Login success');
       showToast('Welcome back!', 'success');
 
       // Use startTransition to handle the redirect
       startTransition(() => {
-        if (newUser.role === 'chef') {
-          router.push('/chef/dashboard');
+        if (newUser.onboarding_status !== 'complete') {
+          if (newUser.role === 'chef') {
+            router.push('/chef-onboarding');
+          } else {
+            // Default to client onboarding for others for now, or check specific roles
+            router.push('/onboarding');
+          }
         } else {
-          router.push('/client/home');
+          if (newUser.role === 'chef') {
+            router.push('/chef/dashboard');
+          } else if (newUser.role === 'farmer' || newUser.role === 'business') {
+            router.push('/farmer/dashboard');
+          } else {
+            router.push('/client/home');
+          }
         }
       });
 
@@ -168,12 +181,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(newUser));
         setTokenCookie(newToken);
+        document.cookie = `user_role=${newUser.role}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
         showToast('Account created! Karibu.', 'success');
         startTransition(() => {
-          if (newUser.role === 'chef') {
-            router.replace('/chef/dashboard');
+          if (newUser.onboarding_status !== 'complete') {
+            if (newUser.role === 'chef') {
+              router.replace('/chef-onboarding');
+            } else {
+              router.replace('/onboarding');
+            }
           } else {
-            router.replace('/client/home');
+            if (newUser.role === 'chef') {
+              router.replace('/chef/dashboard');
+            } else if (newUser.role === 'farmer' || newUser.role === 'business') {
+              router.replace('/farmer/dashboard');
+            } else {
+              router.replace('/client/home');
+            }
           }
         });
         return { success: true };

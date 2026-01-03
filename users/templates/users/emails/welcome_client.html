@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .btn { display: inline-block; padding: 12px 24px; background-color: #ff7642; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .footer { margin-top: 40px; font-size: 12px; color: #888; text-align: center; }
+        .highlight { color: #ff7642; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to <span class="highlight">Foodie</span>!</h1>
+        </div>
+        
+        <p>Hi {{ first_name }},</p>
+        
+        <p>Thank you for signing up. You just unlocked a world where meals are no longer chores. Real chefs, crafted flavors, recommendations tailored to your vibe, right when you need them.</p>
+
+        <p>Your profile helps us learn your tastes, allergies, budget, and schedule so we can suggest meals that actually fit your life. Try new cuisines, save favorites, and connect with local chefs who care as much about your dinner as you do.</p>
+
+        <p>Ready to see it in action?</p>
+
+        <p style="text-align: center; margin: 30px 0;">
+            <a href="{{ cta_link }}" class="btn">Set up your first order</a>
+        </p>
+
+        <p>If anything feels off, update your preferences anytime. You’re in control; we simply power the experience.</p>
+        
+        <p>Thanks for trusting us with your appetite. The fun part begins now.</p>
+
+        <p>Cheers,<br>The Foodie Team</p>
+
+        <div class="footer">
+            <p>&copy; {% now "Y" %} Foodie Inc. All rights reserved.</p>
+            <p>If you didn't create this account, please ignore this email.</p>
+        </div>
+    </div>
+</body>
+</html>

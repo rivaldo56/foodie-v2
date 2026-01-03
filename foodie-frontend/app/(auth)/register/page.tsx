@@ -3,15 +3,24 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams } from 'next/navigation';
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const searchParams = useSearchParams();
+  const type = searchParams.get('type');
+
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'client' | 'chef'>('client');
+  const [role, setRole] = useState<'client' | 'chef' | 'farmer' | 'business'>(
+    (type === 'farmer' || type === 'business') ? type : 'client'
+  );
   const [error, setError] = useState<string | null>(null);
+
+  // Lock role selection if type is provided in URL
+  const isRoleLocked = !!type;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -39,22 +48,30 @@ export default function RegisterPage() {
           <p className="text-sm text-white/60">Select your role to personalise the experience.</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 rounded-full border border-white/10 bg-white/5 p-1 text-sm font-medium">
-          <button
-            type="button"
-            onClick={() => setRole('client')}
-            className={`rounded-full px-4 py-2 transition ${role === 'client' ? 'bg-orange-500 text-white shadow-glow' : 'text-white/70 hover:text-white'}`}
-          >
-            Client
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole('chef')}
-            className={`rounded-full px-4 py-2 transition ${role === 'chef' ? 'bg-orange-500 text-white shadow-glow' : 'text-white/70 hover:text-white'}`}
-          >
-            Chef
-          </button>
-        </div>
+        {!isRoleLocked && (
+          <div className="grid grid-cols-2 gap-3 rounded-full border border-white/10 bg-white/5 p-1 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => setRole('client')}
+              className={`rounded-full px-4 py-2 transition ${role === 'client' ? 'bg-orange-500 text-white shadow-glow' : 'text-white/70 hover:text-white'}`}
+            >
+              Client
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole('chef')}
+              className={`rounded-full px-4 py-2 transition ${role === 'chef' ? 'bg-orange-500 text-white shadow-glow' : 'text-white/70 hover:text-white'}`}
+            >
+              Chef
+            </button>
+          </div>
+        )}
+
+        {isRoleLocked && (
+          <div className="text-center p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium">
+            Registering as a {type === 'farmer' ? 'Farmer' : 'Supplier'}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">

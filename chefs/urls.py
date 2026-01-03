@@ -22,17 +22,15 @@ urlpatterns = [
     path('certifications/<int:pk>/', views.ChefCertificationDetailView.as_view(), name='certification-detail'),
     
     # Menu items
-    # Menu items
-    path('menu-items/', views.MenuItemListView.as_view(), name='menu-items'),
-    path('menu-items/create/', views.MenuItemCreateView.as_view(), name='create-menu-item'),
-    path('menu-items/<int:pk>/', views.MenuItemDetailView.as_view(), name='menu-item-detail'),
-    
     # Favorites
     path('favorites/', views.FavoriteChefListView.as_view(), name='favorite-list'),
     path('<int:chef_id>/favorite/', views.FavoriteChefToggleView.as_view(), name='toggle-favorite'),
     
     # Analytics
     path('analytics/', views.ChefAnalyticsView.as_view(), name='chef-analytics'),
+    
+    # Onboarding
+    path('onboarding/', views.ChefOnboardingView.as_view(), name='chef-onboarding'),
 ]
 
 from rest_framework.routers import DefaultRouter

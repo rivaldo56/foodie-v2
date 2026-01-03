@@ -13,7 +13,7 @@ urlpatterns = [
     path('<int:pk>/cancel/', views.BookingCancelView.as_view(), name='cancel-booking'),
     
     # Menu items
-    path('menu-items/', views.MenuItemListView.as_view(), name='menu-items'),
+    path('menu-items/', views.MyMenuItemListView.as_view(), name='menu-items'),
     path('menu-items/create/', views.MenuItemCreateView.as_view(), name='create-menu-item'),
     path('menu-items/<int:pk>/', views.MenuItemDetailView.as_view(), name='menu-item-detail'),
     path('menu-items/<int:pk>/update/', views.MenuItemUpdateView.as_view(), name='update-menu-item'),

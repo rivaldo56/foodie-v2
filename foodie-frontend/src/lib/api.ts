@@ -97,6 +97,7 @@ export interface User {
   phone_number?: string;
   profile_image?: string;
   profile_picture?: string;
+  onboarding_status?: 'not_started' | 'in_progress' | 'complete';
 }
 
 export interface Chef {
