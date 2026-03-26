@@ -40,6 +40,12 @@ export const authService = {
             if (!data?.token || !data?.user) {
                 throw new Error('Login response missing token or user');
             }
+            
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+            }
 
             return data;
         } catch (error: any) {
@@ -59,7 +65,7 @@ export const authService = {
         const [firstName = '', ...rest] = data.full_name.trim().split(/\s+/);
         const lastName = rest.join(' ');
 
-        return apiRequest({
+        const response = await apiRequest<{ token: string; user: User }>({
             url: '/users/register/',
             method: 'POST',
             data: {
@@ -73,6 +79,14 @@ export const authService = {
                 password_confirm: data.password2,
             },
         });
+        
+        if (response.data?.token && response.data?.user && typeof window !== 'undefined') {
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            document.cookie = `token=${response.data.token}; path=/; max-age=86400; SameSite=Lax`;
+        }
+        
+        return response;
     },
 
     async getCurrentUser(): Promise<ApiResponse<User>> {

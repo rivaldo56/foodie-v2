@@ -19,6 +19,19 @@ from bookings.models import Booking
 from chefs.models import ChefProfile
 
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def verify_token_view(request):
+    """Verify auth token and return user identifying info"""
+    user = request.user
+    return Response({
+        'user_id': user.id,
+        'email': user.email,
+        'role': user.role,
+        'is_verified': user.is_verified
+    }, status=status.HTTP_200_OK)
+
+
 class UserRegistrationView(generics.CreateAPIView):
     """
     User registration endpoint.

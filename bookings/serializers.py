@@ -128,11 +128,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         chef = ChefProfile.objects.get(id=chef_id)
         
         # Calculate pricing
-        base_price = chef.hourly_rate * validated_data['duration_hours']
-        total_amount = base_price
-        
-        # Create menu items and calculate total cost
-        menu_items_cost = Decimal('0.00')
+        base_price = chef.hourly_rate * Decimal(validated_data['duration_hours'])
         
         # First save the booking to get an ID
         booking = Booking.objects.create(
@@ -143,9 +139,10 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             **validated_data
         )
         
+        menu_items_cost = Decimal('0.00')
         for item_data in menu_items_data:
             menu_item = MenuItem.objects.get(id=item_data['menu_item_id'])
-            quantity = item_data['quantity']
+            quantity = Decimal(item_data['quantity'])
             unit_price = menu_item.price_per_serving
             total_price = unit_price * quantity
             
@@ -158,8 +155,13 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             )
             menu_items_cost += total_price
             
-        # Update booking total amount
-        booking.total_amount = base_price + menu_items_cost + Decimal(str(booking.additional_fees))
+        # Update booking total amount with 15% platform fee matching old Edge Function logic
+        subtotal = base_price + menu_items_cost
+        platform_fee = subtotal * Decimal('0.15')
+        
+        booking.base_price = subtotal
+        booking.additional_fees = platform_fee
+        booking.total_amount = subtotal + platform_fee
         booking.save()
         
         return booking

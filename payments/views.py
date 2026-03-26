@@ -154,3 +154,21 @@ class MpesaCallbackView(generics.CreateAPIView):
             return HttpResponse("OK", status=200)
         except Exception as e:
             return HttpResponse("Error", status=400)
+
+
+class PaystackInitializeView(generics.CreateAPIView):
+    """Scaffold for Paystack Payment Initialization"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        # Implementation to follow
+        return Response({"message": "Paystack initialization endpoint scaffolded"}, status=200)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class PaystackWebhookView(generics.CreateAPIView):
+    """Scaffold for Paystack Webhook Verification"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        # Implementation to verify Paystack signature and update booking status
+        return HttpResponse("OK", status=200)

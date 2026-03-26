@@ -34,9 +34,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Parse ALLOWED_HOSTS from environment variable
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
-# Add Render domain if not in DEBUG mode
+# Add Render and Azure domains if not in DEBUG mode
 if not DEBUG:
-    ALLOWED_HOSTS.append('.onrender.com')  # This allows any subdomain of onrender.com
+    ALLOWED_HOSTS.extend(['.onrender.com', '.azurewebsites.net'])
     
     # Security Settings for Production
     SESSION_COOKIE_SECURE = True
@@ -90,9 +90,7 @@ INSTALLED_APPS = [
     'bookings',
     'chat',
     'payments',
-    'ai',
-    'farmers',
-    'market',
+    'admin_api',
 ]
 
 MIDDLEWARE = [
