@@ -8,7 +8,7 @@ import ChefBadge from '@/components/ChefBadge';
 import MenuItemCard from '@/components/MenuItemCard';
 import ProfileEditModal from '@/components/modals/ProfileEditModal';
 import Image from 'next/image';
-import { CheckCircle, Edit, Plus, Star, TrendingUp, Users, Utensils, User, Mail, Phone, MapPin, Camera, Save, Loader2, ChefHat, LogOut } from 'lucide-react';
+import { CheckCircle, Edit, Plus, Star, TrendingUp, Users, Utensils, User, Mail, Phone, MapPin, Camera, Save, Loader2, ChefHat, LogOut, Clock, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ChefProfilePage() {
@@ -193,8 +193,79 @@ export default function ChefProfilePage() {
             </p>
           )}
 
+          {/* Pricing & Availability Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-6 flex items-center justify-between group hover:border-[#ffb703]/30 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#ffb703]/10 flex items-center justify-center text-[#ffb703]">
+                  <Clock size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-white/40 font-medium">Hourly Rate</p>
+                  <p className="text-xl font-bold text-white">KES {(chefProfile?.hourly_rate || 2500).toLocaleString()}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="p-2 rounded-lg bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Edit size={16} className="text-white/40" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-6 flex items-center justify-between group hover:border-[#ff7642]/30 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#ff7642]/10 flex items-center justify-center text-[#ff7642]">
+                  <MapPin size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-white/40 font-medium">Service Area</p>
+                  <p className="text-xl font-bold text-white">{chefProfile?.city || 'Nairobi'} (+{chefProfile?.service_radius || 10}km)</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="p-2 rounded-lg bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Edit size={16} className="text-white/40" />
+              </button>
+            </div>
+          </div>
+
+          {/* Availability Breakdown */}
+          {chefProfile?.availability_schedule && (
+            <div className="mt-8 p-6 rounded-2xl bg-white/5 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Calendar size={18} className="text-[#ffb703]" />
+                Availability Schedule
+              </h3>
+              
+              <div className="flex flex-wrap gap-2">
+                {Array.isArray(typeof chefProfile.availability_schedule === 'object' && (chefProfile.availability_schedule as any).days) ? (
+                  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                    const isAvailable = Array.isArray((chefProfile.availability_schedule as any).days) && (chefProfile.availability_schedule as any).days.some((d: string) => d.startsWith(day));
+                    return (
+                      <div 
+                        key={day}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                          isAvailable 
+                            ? "bg-[#ffb703] text-black" 
+                            : "bg-white/5 text-white/20"
+                        }`}
+                      >
+                        {day}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-white/40 italic">Set your schedule in onboarding or edit profile</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
             <div className="rounded-2xl bg-white/5 border border-white/10 p-4 text-center">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Utensils className="h-5 w-5 text-orange-500" />

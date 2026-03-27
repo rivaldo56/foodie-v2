@@ -55,6 +55,13 @@ class ChefProfile(models.Model):
     # Portfolio
     portfolio_images = models.JSONField(default=list, blank=True)  # URLs to images
     certifications = models.JSONField(default=list, blank=True)  # Culinary certifications (legacy field)
+    culinary_paths = models.JSONField(default=list, blank=True)  # e.g. ['Private Dining', 'Catering']
+    document_uploads = models.JSONField(default=list, blank=True)  # Uploaded cert document URLs
+    identity_verification_status = models.CharField(
+        max_length=20,
+        choices=[('pending', 'Pending'), ('verified', 'Verified'), ('rejected', 'Rejected')],
+        default='pending'
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

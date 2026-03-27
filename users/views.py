@@ -28,7 +28,8 @@ def verify_token_view(request):
         'user_id': user.id,
         'email': user.email,
         'role': user.role,
-        'is_verified': user.is_verified
+        'is_verified': user.is_verified,
+        'onboarding_status': user.onboarding_status
     }, status=status.HTTP_200_OK)
 
 
@@ -254,7 +255,9 @@ class OnboardingCompleteView(generics.GenericAPIView):
     """
     permission_classes = [permissions.IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
+
         user = request.user
         
         # Verify required data exists based on role
@@ -270,16 +273,77 @@ class OnboardingCompleteView(generics.GenericAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         elif user.role == User.Role.CHEF:
-            from chefs.models import ChefOnboarding
+            from chefs.models import ChefOnboarding, ChefProfile
             try:
                 onboarding = user.chef_onboarding
                 onboarding.completed = True
                 onboarding.save()
+
+                # Sync collected data to the canonical ChefProfile
+                profile = ChefProfile.objects.get(user=user)
+                profile.specialties = onboarding.specialties
+                profile.culinary_paths = onboarding.culinary_paths
+                profile.portfolio_images = onboarding.portfolio_media
+                profile.document_uploads = onboarding.certifications
+                profile.certifications = onboarding.certifications
+                profile.identity_verification_status = onboarding.identity_verification_status
+                
+                # Availability & Pricing Sync
+                import json as _json
+                availability_list = onboarding.availability_options or []
+                
+                # Default fallback for availability schedule
+                profile.availability_schedule = {slot: True for slot in availability_list}
+                
+                # Parse rich JSON from availability_options if present
+                for slot in availability_list:
+                    try:
+                        if slot.startswith('{'):
+                            avail = _json.loads(slot)
+                            if isinstance(avail, dict):
+                                # Extract meaningful schedule for structured rendering
+                                profile.availability_schedule = {
+                                    'type': avail.get('availabilityType', 'casual'),
+                                    'days': avail.get('casualDays', []),
+                                    'slots': avail.get('timeSlots', []),
+                                    'guest_limit': avail.get('guestLimit', 10)
+                                }
+                                
+                                # Sync location fields
+                                if avail.get('city'): profile.city = avail['city']
+                                if avail.get('state'): profile.state = avail['state']
+                                if avail.get('travelDistance'): 
+                                    profile.service_radius = int(avail['travelDistance'])
+                                if avail.get('lat'): profile.latitude = avail['lat']
+                                if avail.get('lng'): profile.longitude = avail['lng']
+                                break
+                    except (ValueError, TypeError):
+                        continue
+
+                # Validate and assign experience level
+                valid_levels = [choice[0] for choice in ChefProfile.ExperienceLevel.choices]
+                if onboarding.experience_level in valid_levels:
+                    profile.experience_level = onboarding.experience_level
+                else:
+                    profile.experience_level = ChefProfile.ExperienceLevel.BEGINNER
+
+                # Map pricing_tier to KES hourly_rate (based on Nairobi market rates)
+                if onboarding.pricing_tier == 'Budget':
+                    profile.hourly_rate = 2500.00
+                elif onboarding.pricing_tier == 'Fair Market':
+                    profile.hourly_rate = 4500.00
+                elif onboarding.pricing_tier == 'Premium':
+                    profile.hourly_rate = 10000.00
+
+                profile.save()
+
+
             except ChefOnboarding.DoesNotExist:
                 return Response(
                     {'error': 'Onboarding data not found'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
+
         
         # Update user status
         user.onboarding_status = User.OnboardingStatus.COMPLETE

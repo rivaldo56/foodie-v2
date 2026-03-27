@@ -19,28 +19,30 @@ export default function ChefStepContainer({
 }: ChefStepContainerProps) {
     return (
         <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full flex flex-col h-full"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full flex flex-col h-full relative"
         >
-            <div className="mb-6">
+            <div className="mb-8 relative z-10">
                 {onBack && (
-                    <button
+                    <motion.button
+                        whileHover={{ x: -4, backgroundColor: "rgba(255,255,255,0.05)" }}
                         onClick={onBack}
-                        className="mb-6 text-neutral-400 hover:text-white transition-colors p-2 -ml-2 rounded-full hover:bg-white/5 w-fit"
+                        className="mb-8 text-neutral-500 hover:text-white transition-all p-2 -ml-2 rounded-full flex items-center gap-2 group"
                     >
-                        <ArrowLeft size={24} />
-                    </button>
+                        <ArrowLeft size={20} className="group-hover:text-[#ffb703] transition-colors" />
+                        <span className="text-sm font-medium">Back</span>
+                    </motion.button>
                 )}
 
                 {title && (
                     <motion.h1
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="text-3xl font-medium tracking-tight text-white mb-2"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1, duration: 0.5 }}
+                        className="text-4xl font-semibold tracking-tight text-white mb-3"
                     >
                         {title}
                     </motion.h1>
@@ -48,17 +50,18 @@ export default function ChefStepContainer({
 
                 {subtitle && (
                     <motion.p
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="text-neutral-400 text-lg leading-relaxed"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2, duration: 0.5 }}
+                        className="text-white/50 text-lg leading-relaxed font-light max-w-sm"
                     >
                         {subtitle}
                     </motion.p>
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-hide -mx-1 px-1 py-1">
+            <div className="flex-1 overflow-y-auto scrollbar-hide -mx-2 px-2 py-2 mb-4">
+
                 {children}
             </div>
         </motion.div>

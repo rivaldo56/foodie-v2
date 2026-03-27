@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-pilot-dev-key-do-not-use-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -90,8 +90,9 @@ INSTALLED_APPS = [
     'bookings',
     'chat',
     'payments',
-    'admin_api',
+    'ai',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -133,19 +134,32 @@ ASGI_APPLICATION = 'chefconnect.asgi.application'
 DATABASE_URL = config('DATABASE_URL', default='')
 
 if DATABASE_URL:
-    # Production: Use PostgreSQL
     import dj_database_url
     DATABASES = {
         'default': dj_database_url.parse(DATABASE_URL)
     }
 else:
-    # Development: Use SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+# Optimized SQLite configuration for concurrency and reliability
+if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
+    # Ensure OPTIONS exists
+    if 'OPTIONS' not in DATABASES['default']:
+        DATABASES['default']['OPTIONS'] = {}
+    
+    # Increase timeout to 20 seconds to prevent "database is locked" errors
+    DATABASES['default']['OPTIONS']['timeout'] = 20
+    
+    # Force write-mode transactions to prevent deadlocks (IMMEDIATE transaction mode)
+    # This is critical for SQLite concurrency
+    DATABASES['default']['OPTIONS']['transaction_mode'] = 'IMMEDIATE'
+
+
 
 
 # Password validation

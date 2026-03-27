@@ -57,7 +57,6 @@ def api_root(request):
             'bookings': request.build_absolute_uri('/api/bookings/'),
             'chat': request.build_absolute_uri('/api/chat/'),
             'payments': request.build_absolute_uri('/api/payments/'),
-            'ai': request.build_absolute_uri('/api/ai/'),
         },
         'admin': request.build_absolute_uri('/admin/'),
     })
@@ -80,9 +79,8 @@ urlpatterns = [
     path('api/chat/', include('chat.urls')),
     path('api/payments/', include('payments.urls')),
     path('api/ai/', include('ai.urls')),
-    path('api/farmers/', include('farmers.urls')),
-    path('api/market/', include('market.urls')),
 ]
+
 
 # Serve media files in development
 if settings.DEBUG:

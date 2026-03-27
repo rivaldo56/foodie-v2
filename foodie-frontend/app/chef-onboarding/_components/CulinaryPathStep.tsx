@@ -2,7 +2,8 @@
 
 import ChefStepContainer from "./ChefStepContainer";
 import { motion } from "framer-motion";
-import { Utensils, Calendar, ChefHat, GraduationCap, Store, Infinity } from "lucide-react";
+import { Utensils, Calendar, ChefHat, GraduationCap, Store, Infinity, ArrowRight } from "lucide-react";
+
 
 interface CulinaryPathStepProps {
     value: string[];
@@ -50,7 +51,7 @@ export default function CulinaryPathStep({ value, onChange, onNext, onBack }: Cu
             subtitle="What services do you offer?"
             onBack={onBack}
         >
-            <div className="space-y-3 mt-4">
+            <div className="space-y-4 mt-6">
                 {PATHS.map((path, index) => {
                     const isSelected = value.includes(path.id);
                     const Icon = path.icon;
@@ -58,24 +59,26 @@ export default function CulinaryPathStep({ value, onChange, onNext, onBack }: Cu
                     return (
                         <motion.button
                             key={path.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.05 }}
                             onClick={() => togglePath(path.id)}
-                            className={`w-full flex items-center p-4 rounded-xl border text-left transition-all duration-200 group ${isSelected
-                                    ? "border-[#ffb703] bg-[#ffb703]/10 text-white"
-                                    : "border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10"
+                            className={`w-full flex items-center p-5 rounded-2xl border transition-all duration-300 group relative overflow-hidden ${isSelected
+                                    ? "border-[#ffb703] bg-[#ffb703]/10 text-white shadow-[0_0_20px_rgba(255,183,3,0.1)]"
+                                    : "border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:border-white/20"
                                 }`}
                         >
-                            <div className={`p-2 rounded-lg mr-4 ${isSelected ? "bg-[#ffb703] text-black" : "bg-white/10 text-neutral-400 group-hover:text-white"}`}>
-                                <Icon size={20} />
+                            <div className={`p-3 rounded-xl mr-5 transition-colors ${isSelected ? "bg-[#ffb703] text-black" : "bg-white/10 text-white/30 group-hover:text-white"}`}>
+                                <Icon size={22} strokeWidth={isSelected ? 2.5 : 1.5} />
                             </div>
-                            <span className="font-medium text-lg">{path.label}</span>
+                            <span className={`font-semibold text-lg ${isSelected ? "text-white" : "text-white/60 group-hover:text-white"}`}>
+                                {path.label}
+                            </span>
+                            
                             {isSelected && (
                                 <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="ml-auto w-3 h-3 rounded-full bg-[#ffb703]"
+                                    layoutId="selected-indicator"
+                                    className="ml-auto w-2.5 h-2.5 rounded-full bg-[#ffb703] shadow-[0_0_10px_rgba(255,183,3,0.8)]"
                                 />
                             )}
                         </motion.button>
@@ -83,18 +86,23 @@ export default function CulinaryPathStep({ value, onChange, onNext, onBack }: Cu
                 })}
             </div>
 
-            <div className="mt-8">
-                <button
+            <div className="mt-12 mb-8">
+                <motion.button
+                    whileHover={value.length > 0 ? { scale: 1.02 } : {}}
+                    whileTap={value.length > 0 ? { scale: 0.98 } : {}}
                     onClick={onNext}
                     disabled={value.length === 0}
-                    className={`w-full py-4 rounded-full font-medium text-lg transition-all ${value.length > 0
-                            ? "bg-[#ffb703] text-black shadow-lg hover:shadow-yellow-500/25"
-                            : "bg-white/10 text-white/40 cursor-not-allowed"
+                    className={`w-full py-5 rounded-full font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${value.length > 0
+                            ? "bg-gradient-to-r from-[#ffb703] to-[#ff9500] text-black shadow-xl shadow-yellow-500/10"
+                            : "bg-white/5 text-white/20 cursor-not-allowed border border-white/5"
                         }`}
                 >
                     Continue
-                </button>
+                    <ArrowRight size={20} className={value.length > 0 ? "opacity-100" : "opacity-0"} />
+                </motion.button>
+
             </div>
+
         </ChefStepContainer>
     );
 }
