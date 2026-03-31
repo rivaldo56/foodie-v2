@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -13,13 +14,13 @@ import {
 import MessageList from '@/components/chat/MessageList';
 import { MessageCircle, Send, Search, ArrowLeft, MoreVertical, Phone, Video, Inbox, MessageSquare } from 'lucide-react';
 
-export default function ChefMessagesPage() {
+function ChefMessagesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
@@ -31,7 +32,7 @@ export default function ChefMessagesPage() {
   useEffect(() => {
     const conversationIdParam = searchParams.get('conversationId');
     if (conversationIdParam) {
-      setActiveConversationId(Number(conversationIdParam));
+      setActiveConversationId(conversationIdParam);
     }
   }, [searchParams]);
 
@@ -39,14 +40,14 @@ export default function ChefMessagesPage() {
   useEffect(() => {
     const userIdParam = searchParams.get('user');
     if (userIdParam && conversations.length > 0 && !activeConversationId) {
-      const userId = Number(userIdParam);
+      const userId = userIdParam;
 
       // Try to find existing conversation with this user
       const existingConversation = conversations.find(conv => {
         const otherUserId = conv.other_user?.id ||
           conv.client?.id ||
           (conv as any).chef?.id;
-        return otherUserId === userId;
+        return String(otherUserId) === String(userId);
       });
 
       if (existingConversation) {
@@ -150,7 +151,7 @@ export default function ChefMessagesPage() {
     }
   };
 
-  const handleSelectConversation = (id: number) => {
+  const handleSelectConversation = (id: string | number) => {
     setActiveConversationId(id);
     router.push(`/chef/messages?conversationId=${id}`);
   };
@@ -377,5 +378,16 @@ export default function ChefMessagesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+
+
+
+export default function ChefMessagesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}>
+      <ChefMessagesPageContent />
+    </Suspense>
   );
 }

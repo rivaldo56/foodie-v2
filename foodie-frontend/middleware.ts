@@ -1,92 +1,59 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(req: NextRequest) {
-  const token = req.cookies.get('token')?.value;
-  const pathname = req.nextUrl.pathname;
-
-  // Public routes that don't require authentication
-  const publicRoutes = ['/', '/chefs', '/discover', '/meals', '/business', '/about', '/careers', '/support', '/press', '/terms', '/privacy'];
-  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`));
-  
-  // Check if this is an auth route
-  const isAuthRoute = 
-    pathname === '/auth' || 
-    pathname === '/login' || 
-    pathname === '/register' ||
-    pathname.startsWith('/auth/') ||
-    pathname.startsWith('/login/') ||
-    pathname.startsWith('/register/');
-
-  // Allow public routes and static assets
-  if (isPublicRoute || pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
-    return NextResponse.next();
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
   }
+}
 
-  // If no token and trying to access protected routes, redirect to auth
-  if (!token && !isAuthRoute && !isPublicRoute) {
-    const redirectUrl = new URL('/login', req.url);
-    redirectUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
+export async function middleware(request: NextRequest) {
+  const token = request.cookies.get('access')?.value;
+  const pathname = request.nextUrl.pathname;
 
-  // If token exists, do rigorous backend validation instead of trusting the client
+  let user = null;
   if (token) {
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const verifyRes = await fetch(`${backendUrl}/api/users/verify/`, {
-        headers: { 'Authorization': `Token ${token}` },
-        cache: 'no-store'
-      });
-      
-      if (!verifyRes.ok) {
-        // Invalid token - clear cookie and redirect
-        const response = NextResponse.redirect(new URL('/auth', req.url));
-        response.cookies.delete('token');
-        return response;
-      }
-      
-      const userData = await verifyRes.json();
-      const role = userData.role;
+    user = parseJwt(token);
+  }
 
-      // Handle auth route redirection if already logged in
-      if (isAuthRoute) {
-        return NextResponse.redirect(new URL(`/${role}/dashboard`, req.url));
-      }
+  // 1. Authentication Guard: Redirect to /login if not logged in for protected routes
+  const protectedPrefixes = ['/admin', '/client', '/chef', '/profile', '/book'];
+  const isProtectedRoute = protectedPrefixes.some(prefix => pathname.startsWith(prefix));
 
-      // Role-based route protection
-      if (pathname.startsWith('/client/') && role !== 'client') {
-        return NextResponse.redirect(new URL(`/${role}/dashboard`, req.url));
-      }
-      if (pathname.startsWith('/chef/') && role !== 'chef' && role !== 'admin') {
-        return NextResponse.redirect(new URL(`/client/home`, req.url));
-      }
-      if (pathname.startsWith('/admin') && role !== 'admin') {
-        return NextResponse.redirect(new URL(`/client/home`, req.url));
-      }
-      
-      return NextResponse.next();
-      
-    } catch (error) {
-      console.error('Middleware token verification failed:', error);
-      // Let it pass through to client components which should handle network failures
-      return NextResponse.next();
+  if (!token && isProtectedRoute) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // 2. Admin Authorization Guard
+  if (pathname.startsWith('/admin')) {
+    const userRole = user?.role;
+    if (userRole !== 'admin') {
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
+
+  // 3. Role-based Dashboard Redirect (Optional, but good for UX)
+  // If user is logged in and hits the root, maybe redirect to their dashboard?
+  // if (pathname === '/' && user) {
+  //   return NextResponse.redirect(new URL(`/${user.role}/home`, request.url));
+  // }
 
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
+    '/admin/:path*',
     '/client/:path*',
     '/chef/:path*',
-    '/admin/:path*',
-    '/auth/:path*',
-    '/login/:path*',
-    '/register/:path*',
     '/profile/:path*',
-    '/orders/:path*',
-    '/bookings/:path*',
+    '/api/:path*',
+    '/book/:path*',
   ],
 };

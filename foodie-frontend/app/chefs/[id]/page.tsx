@@ -17,7 +17,7 @@ import BackButton from '@/components/BackButton';
 export default function ChefDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const chefId = parseInt(params.id as string);
+  const chefId = params.id as string;
 
   const [chef, setChef] = useState<Chef | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -34,15 +34,15 @@ export default function ChefDetailPage() {
       if (chefResponse.data) {
         setChef(chefResponse.data);
       } else {
-        const mockChef = mockChefs.find(c => c.id === chefId);
-        if (mockChef) setChef(mockChef);
+        const mockChef = mockChefs.find(c => String(c.id) === String(chefId));
+        if (mockChef) setChef(mockChef as any);
       }
 
       const mealsResponse = await getChefMeals(chefId);
       if (mealsResponse.data) {
         setMeals(mealsResponse.data);
       } else {
-        setMeals(mockMeals.filter(m => m.chef === chefId));
+        setMeals(mockMeals.filter(m => String(m.chef) === String(chefId)) as any);
       }
 
       const reviewsResponse = await getChefReviews(chefId);
@@ -180,34 +180,18 @@ export default function ChefDetailPage() {
                 </div>
               </div>
 
-              {/* 4. Pricing & Availability Quick Info */}
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
-                  <Clock className="h-4 w-4 text-[#ffb703]" />
-                  <span className="text-white/60">Rate:</span>
-                  <span className="text-white font-bold">KES {(chef.hourly_rate || 2500).toLocaleString()} /hr</span>
-                </div>
-                {chef.city && (
-                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
-                    <MapPin className="h-4 w-4 text-[#ff7642]" />
-                    <span className="text-white/60">Serves:</span>
-                    <span className="text-white font-bold">{chef.city}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* 5. Buttons */}
+              {/* 4. Buttons */}
               <div className="flex gap-3 w-full md:max-w-md mx-auto md:mx-0">
                 <button
                   onClick={handleBookNow}
-                  className="flex-1 py-3 bg-[#ffb703] hover:bg-[#ffb703]/90 text-black font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#ffb703]/10"
+                  className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
                 >
                   <Calendar className="h-4 w-4" />
-                  Book Now
+                  Book Chef
                 </button>
                 <button
                   onClick={handleMessage}
-                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-black rounded-xl text-sm border border-white/10 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-2 bg-[#1f2228] hover:bg-[#2a2d35] text-white font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Message
@@ -216,86 +200,6 @@ export default function ChefDetailPage() {
 
             </div>
           </div>
-
-          {/* Availability Section (New) */}
-          {chef.availability_schedule && (
-            <div className="mb-12 p-8 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Clock size={80} className="text-[#ffb703]" />
-              </div>
-              
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <Calendar className="text-[#ffb703]" />
-                Availability & Service
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-white/30 mb-4">Booking Style</p>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#ffb703] mt-2 shadow-[0_0_8px_#ffb703]" />
-                      <div>
-                        <p className="text-white font-bold capitalize">
-                          {typeof chef.availability_schedule === 'object' && (chef.availability_schedule as any).type 
-                            ? (chef.availability_schedule as any).type.replace('_', ' ') 
-                            : 'Personalized'}
-                        </p>
-                        <p className="text-sm text-white/50">Chef prefers bookings with notice</p>
-                      </div>
-                    </div>
-                    {typeof chef.availability_schedule === 'object' && (chef.availability_schedule as any).guest_limit && (
-                      <div className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#ff7642] mt-2 shadow-[0_0_8px_#ff7642]" />
-                        <div>
-                          <p className="text-white font-bold">Up to {(chef.availability_schedule as any).guest_limit} Guests</p>
-                          <p className="text-sm text-white/50">Maximum capacity per session</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-white/30 mb-4">Preferred Times</p>
-                  <div className="flex flex-wrap gap-2">
-                    {Array.isArray(typeof chef.availability_schedule === 'object' && (chef.availability_schedule as any).slots) && (chef.availability_schedule as any).slots.length > 0 ? (
-                      (chef.availability_schedule as any).slots.map((slot: string) => (
-                        <span key={slot} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-white/80 capitalize">
-                          {slot}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-white/40 italic">Check with chef for specific timing</span>
-                    )}
-                  </div>
-                  
-                  {Array.isArray(typeof chef.availability_schedule === 'object' && (chef.availability_schedule as any).days) && (chef.availability_schedule as any).days.length > 0 && (
-                    <div className="mt-6">
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-white/30 mb-4">Available Days</p>
-                      <div className="flex gap-2">
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
-                          const isAvailable = Array.isArray((chef.availability_schedule as any).days) && (chef.availability_schedule as any).days.some((d: string) => d.startsWith(day));
-                          return (
-                            <div 
-                              key={day}
-                              className={`w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-black tracking-tight transition-all ${
-                                isAvailable 
-                                  ? "bg-[#ffb703] text-black shadow-lg shadow-[#ffb703]/10" 
-                                  : "bg-white/5 text-white/20 border border-white/5"
-                              }`}
-                            >
-                              {day.charAt(0)}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Content Tabs */}
           <div className="border-t border-white/10 mb-6">

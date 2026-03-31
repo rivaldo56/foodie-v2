@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import BottomDock from '@/components/BottomDock';
 import ChatAssistantFab from '@/components/ChatAssistantFab';
-import { LogOut, Mail, MapPin, Phone, Trophy, UserRound, Loader2, CheckCircle2 } from 'lucide-react';
+import { LogOut, Mail, MapPin, Phone, Trophy, UserRound, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 
 const TABS = ['Basic Info', 'Referral', 'Wallet', 'Preferences'] as const;
@@ -18,7 +18,18 @@ function ProfilePageContent() {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const activeTab = TABS[0];
+
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    fetch('/api/auth/admin-check', { credentials: 'include' })
+      .then((res) => setIsAdmin(res.ok))
+      .catch(() => setIsAdmin(false));
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -53,8 +64,8 @@ function ProfilePageContent() {
         <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
           <div className="flex flex-col md:flex-row md:items-center gap-6">
             <div className="relative h-24 w-24 rounded-3xl bg-gradient-to-br from-accent to-accent-strong flex items-center justify-center text-white text-3xl font-semibold shadow-glow">
-              {user.profile_image ? (
-                <Image src={user.profile_image} alt={user.full_name} fill className="object-cover rounded-3xl" />
+              {(user as any).profile_image || (user as any).avatar_url ? (
+                <Image src={(user as any).profile_image || (user as any).avatar_url} alt={user.full_name} fill className="object-cover rounded-3xl" />
               ) : (
                 <span>{initials}</span>
               )}
@@ -111,6 +122,15 @@ function ProfilePageContent() {
             <div className="rounded-3xl bg-surface-elevated soft-border px-6 py-6 space-y-4">
               <h2 className="text-sm font-semibold text-muted uppercase tracking-[0.4em]">Quick Links</h2>
               <div className="space-y-3">
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-2 rounded-2xl bg-accent/20 px-4 py-3 text-sm font-semibold text-accent hover:bg-accent/30 transition"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Admin dashboard
+                  </Link>
+                )}
                 <Link href="/orders" className="block rounded-2xl bg-surface-highlight px-4 py-3 text-sm font-semibold text-white hover:bg-accent-soft">
                   Upcoming experiences
                 </Link>

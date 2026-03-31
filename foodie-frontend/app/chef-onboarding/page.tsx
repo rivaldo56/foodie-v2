@@ -51,7 +51,11 @@ export default function ChefOnboardingPage() {
 
     useEffect(() => {
         const init = async () => {
-            if (!isAuthenticated) return;
+            // Enforce Role-Based Access
+            if (user?.role === 'client') {
+                router.replace('/onboarding');
+                return;
+            }
 
             try {
                 const statusRes = await onboardingService.getStatus();
@@ -60,8 +64,8 @@ export default function ChefOnboardingPage() {
                     return;
                 }
 
-                // Fetch saved data
-                const dataRes = await onboardingService.saveChefData({});
+                // Use GET instead of empty PATCH to fetch data
+                const dataRes = await onboardingService.getChefData();
                 if (dataRes.data) {
                     const serverData = dataRes.data;
                     setData(prev => ({

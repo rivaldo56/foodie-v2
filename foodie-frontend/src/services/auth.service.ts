@@ -1,4 +1,5 @@
-import { apiClient, apiRequest, ApiResponse } from '../lib/api';
+import api from '../lib/api';
+import { ApiResponse } from '../lib/api';
 
 export interface LoginCredentials {
     email: string;
@@ -11,105 +12,138 @@ export interface RegisterData {
     password: string;
     password2: string;
     full_name: string;
-    role?: 'client' | 'chef' | 'farmer' | 'business';
+    role?: 'client' | 'chef' | 'admin';
     phone_number?: string;
 }
 
 export interface User {
-    id: number;
+    id: string;
     email: string;
     username: string;
     full_name: string;
-    role: string;
+    role: 'client' | 'chef' | 'admin';
     phone_number?: string;
-    profile_image?: string;
     profile_picture?: string;
-    onboarding_status?: 'not_started' | 'in_progress' | 'complete';
+    onboarding_status?: string;
 }
+
+// Helper to reliably extract user role
+export const getUserRole = (role: any): 'client' | 'chef' | 'admin' => {
+    if (role === 'admin' || role === 'chef' || role === 'client') return role;
+    return 'client';
+};
+
+// Helper to map Django user to our User interface
+export const mapUser = (data: any): User => {
+    return {
+        id: String(data.id),
+        email: data.email || '',
+        username: data.username || '',
+        full_name: data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Foodie User',
+        role: getUserRole(data.role),
+        phone_number: data.phone_number,
+        profile_picture: data.profile_picture,
+        onboarding_status: data.onboarding_status
+    };
+};
 
 export const authService = {
     async login(credentials: LoginCredentials): Promise<{ token: string; user: User }> {
-        try {
-            const response = await apiClient.post('/users/login/', {
-                email: credentials.email,
-                password: credentials.password,
-            });
-
-            const data = response.data;
-
-            if (!data?.token || !data?.user) {
-                throw new Error('Login response missing token or user');
-            }
-            
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
-            }
-
-            return data;
-        } catch (error: any) {
-            // Extract meaningful error message from backend response
-            const errorMessage = error.response?.data?.non_field_errors?.[0]
-                || error.response?.data?.email?.[0]
-                || error.response?.data?.password?.[0]
-                || error.response?.data?.detail
-                || error.message
-                || 'Invalid email or password';
-
-            throw new Error(errorMessage);
+        const response = await api.post('/users/login/', credentials);
+        const { token, user } = response.data;
+        
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('foodie_token', token);
+            document.cookie = `foodie_token=${token}; path=/; max-age=86400; SameSite=Lax`;
         }
+        
+        return {
+            token,
+            user: mapUser(user)
+        };
     },
 
     async register(data: RegisterData): Promise<ApiResponse<{ token: string; user: User }>> {
-        const [firstName = '', ...rest] = data.full_name.trim().split(/\s+/);
-        const lastName = rest.join(' ');
+        const nameParts = data.full_name.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
 
-        const response = await apiRequest<{ token: string; user: User }>({
-            url: '/users/register/',
-            method: 'POST',
-            data: {
-                email: data.email,
-                username: data.username,
-                first_name: firstName || data.username,
-                last_name: lastName,
-                phone_number: data.phone_number ?? '',
-                role: data.role ?? 'client',
-                password: data.password,
-                password_confirm: data.password2,
-            },
-        });
-        
-        if (response.data?.token && response.data?.user && typeof window !== 'undefined') {
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-            document.cookie = `token=${response.data.token}; path=/; max-age=86400; SameSite=Lax`;
+        const registrationData = {
+            email: data.email,
+            username: data.username || data.email.split('@')[0],
+            password: data.password,
+            password_confirm: data.password2,
+            first_name: firstName,
+            last_name: lastName,
+            role: data.role || 'client',
+            phone_number: data.phone_number || ''
+        };
+
+        try {
+            const response = await api.post('/users/register/', registrationData);
+            const { token, user } = response.data;
+            
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('foodie_token', token);
+                document.cookie = `foodie_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+            }
+
+            return {
+                data: {
+                    token,
+                    user: mapUser(user)
+                },
+                status: 201
+            };
+        } catch (error: any) {
+            return {
+                error: error.response?.data?.message || error.response?.data?.detail || 'Registration failed',
+                status: error.response?.status || 400
+            };
         }
-        
-        return response;
     },
 
     async getCurrentUser(): Promise<ApiResponse<User>> {
-        return apiRequest({
-            url: '/users/profile/',
-            method: 'GET',
-        }, true);
-    },
-
-    async logout(): Promise<void> {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
+        try {
+            const response = await api.get('/users/profile/');
+            return {
+                data: mapUser(response.data),
+                status: 200
+            };
+        } catch (error: any) {
+            return {
+                error: error.response?.data?.detail || 'Not authenticated',
+                status: error.response?.status || 401
+            };
         }
     },
 
-    async updateProfile(data: FormData): Promise<ApiResponse<User>> {
-        return apiRequest<User>({
-            url: '/users/profile/',
-            method: 'PATCH',
-            data,
-        }, true);
+    async logout(): Promise<void> {
+        try {
+            await api.post('/users/logout/');
+        } finally {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('foodie_token');
+            }
+        }
+    },
+
+    async updateProfile(formData: FormData): Promise<ApiResponse<User>> {
+        try {
+            // Django profile update expects JSON or Multipart
+            // If formData is used for image upload, it should be sent as multipart
+            const response = await api.patch('/users/profile/', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return {
+                data: mapUser(response.data),
+                status: 200
+            };
+        } catch (error: any) {
+            return { error: error.response?.data?.detail || 'Update failed', status: 400 };
+        }
     }
 };
 

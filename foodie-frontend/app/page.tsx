@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   ArrowRight,
+
   Quote,
   Sparkles,
   UtensilsCrossed,
@@ -14,6 +16,7 @@ import {
   Heart,
   Flame,
 } from 'lucide-react';
+import { useDiscoveryFeed } from '@/hooks/useDiscoveryFeed';
 
 const HOW_IT_WORKS = [
   {
@@ -30,69 +33,6 @@ const HOW_IT_WORKS = [
     title: 'Enjoy',
     description: 'Relax as your chef arrives with everything needed to deliver a five-star experience at home.',
     icon: Clock,
-  },
-];
-
-const DISCOVERY_IMAGES = [
-  {
-    src: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=900&q=80',
-    title: 'Truffled Mushroom Tagliatelle',
-    subtitle: 'Chef Wanjiku Kamau • Italian Contemporary',
-    trending: true,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80',
-    title: 'Citrus Glazed Salmon',
-    subtitle: 'Chef David Mwangi • Coastal Fusion',
-    trending: false,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1546069901-eacef0df6022?auto=format&fit=crop&w=900&q=80',
-    title: 'Breakfast Royale',
-    subtitle: 'Chef Aisha Gathoni • Brunch Atelier',
-    trending: false,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1466637574441-749b8f19452f?auto=format&fit=crop&w=900&q=80',
-    title: 'Sushi Omakase',
-    subtitle: 'Chef Kenji Tanaka • Omakase Sushi',
-    trending: true,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?auto=format&fit=crop&w=900&q=80',
-    title: 'Curry Goat Potjie',
-    subtitle: 'Chef James Ochieng • Kenyan Heritage',
-    trending: false,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=900&q=80',
-    title: 'Pistachio Rose Éclairs',
-    subtitle: 'Chef Zara Patel • Dessert Lab',
-    trending: false,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80',
-    title: 'Harissa Lobster Feast',
-    subtitle: 'Chef Omar Hassan • Seafood Rituals',
-    trending: true,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=900&q=80',
-    title: 'Burnt Basque Cheesecake',
-    subtitle: 'Chef Carol Nduta • Pâtisserie',
-    trending: false,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80',
-    title: 'Nairobi Sunset Platter',
-    subtitle: 'Chef Kevin Njoroge • Tapas Experience',
-    trending: false,
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=900&q=80',
-    title: 'Garden Herb Pasta',
-    subtitle: 'Chef Ivy Wambui • Plant-forward',
-    trending: false,
   },
 ];
 
@@ -115,158 +55,232 @@ const TESTIMONIALS = [
   },
 ];
 
-export default function LandingPage() {
+export default function Home() {
+  const { isAuthenticated, user } = useAuth();
+
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const { items, loading } = useDiscoveryFeed();
 
   useEffect(() => {
     const id = setInterval(() => {
       setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
     }, 6000);
-
     return () => clearInterval(id);
   }, []);
 
   const testimonial = TESTIMONIALS[activeTestimonial];
+
+  const getDashboardLink = () => {
+    if (!user) return '/register';
+    if (user.role === 'admin') return '/admin';
+    if (user.role === 'chef') {
+      return user.onboarding_status === 'complete' ? '/chef/dashboard' : '/chef-onboarding';
+    }
+    return user.onboarding_status === 'complete' ? '/client/home' : '/onboarding';
+  };
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a0f0f] via-[#1b1814] to-[#0f0c0a] text-white">
       <main className="relative overflow-hidden">
         <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top_left,rgba(255,158,90,0.4),transparent_55%)]" aria-hidden />
 
-        <section className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-28">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
-            <div className="space-y-6 sm:space-y-8 lg:space-y-10">
-              <div className="space-y-4 sm:space-y-6">
-                <span className="inline-flex items-center gap-2 sm:gap-3 rounded-full bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-[0.25em] sm:tracking-[0.35em] text-accent">
-                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                  Foodie Experiences
-                </span>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold leading-tight">
-                  Book a Chef.<br className="hidden sm:block" /> Eat Like Royalty.
+        {/* Top Navigation */}
+        <nav className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2 group">
+            <Image
+              src="/logo.png"
+              alt="Foodie Logo"
+              width={520}
+              height={520}
+              className="h-28 w-auto object-contain"
+              priority
+            />
+          </Link>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/register?role=chef"
+              className="text-sm font-medium text-white/70 hover:text-accent transition-colors flex items-center gap-2 group"
+            >
+              <Users className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              Join as a Chef
+            </Link>
+            <Link href={getDashboardLink()} className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+              {isAuthenticated ? 'My Dashboard' : 'Sign In'}
+            </Link>
+
+          </div>
+        </nav>
+
+        {/* Hero Section */}
+        <section className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 sm:-mt-8 md:-mt-12 pt-0 pb-12 sm:pt-2 sm:pb-16 md:pt-6 md:pb-20 lg:pt-10 lg:pb-32">
+          <div className="max-w-4xl">
+            <div className="space-y-8 sm:space-y-10">
+              <div className="space-y-6">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold leading-[1.1]">
+                  Book a Chef.<br /> Eat Like Royalty.
                 </h1>
-                <p className="text-sm sm:text-base lg:text-lg text-white/70 max-w-2xl">
+                <p className="text-base sm:text-lg lg:text-xl text-white/70 max-w-2xl leading-relaxed">
                   Elevate intimate dinners, celebrations, and corporate gatherings with private chefs who bring Nairobi&rsquo;s vibrant culinary scene to your table.
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <Link
-                  href="/register"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white shadow-glow transition hover:bg-accent-strong active:scale-[0.98]"
+                  href={getDashboardLink()}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-8 py-4 text-base sm:text-lg font-semibold text-white shadow-glow transition hover:bg-accent-strong active:scale-[0.98]"
                 >
-                  Get Started
-                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                  {!isAuthenticated 
+                    ? "Get Started" 
+                    : (user?.onboarding_status === 'complete' ? "Go to Dashboard" : "Resume Onboarding")
+                  }
+                  <ArrowRight className="h-5 w-5" />
                 </Link>
+
                 <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-full border border-white/20 px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white/80 backdrop-blur transition hover:border-white/40 active:scale-[0.98]"
+                  href="/discover"
+                  className="inline-flex items-center justify-center rounded-full border border-white/20 px-8 py-4 text-base sm:text-lg font-semibold text-white/80 backdrop-blur transition hover:border-white/40 active:scale-[0.98]"
                 >
-                  Sign In
+                  Explore Menus
                 </Link>
               </div>
-
-              <div className="grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-white/70">
+              
+              <div className="flex items-center gap-8 sm:gap-12 pt-0 text-sm sm:text-base text-white/70">
                 <div className="space-y-1">
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-white">120+</p>
-                  <p className="leading-tight">Chefs onboarded</p>
+                  <p className="text-3xl sm:text-4xl font-semibold text-white">120+</p>
+                  <p>Chefs onboarded</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-white">4.9★</p>
-                  <p className="leading-tight">Average event rating</p>
+                  <p className="text-3xl sm:text-4xl font-semibold text-white">4.9★</p>
+                  <p>Average rating</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-white">8K+</p>
-                  <p className="leading-tight">Experiences hosted</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative w-full">
-              <div className="absolute -left-4 sm:-left-8 -top-4 sm:-top-8 h-16 w-16 sm:h-24 sm:w-24 rounded-full bg-accent/40 blur-3xl" aria-hidden />
-              <div className="absolute -right-3 sm:-right-6 bottom-0 h-20 w-20 sm:h-32 sm:w-32 rounded-full bg-emerald-500/30 blur-3xl" aria-hidden />
-              <div className="relative rounded-2xl sm:rounded-[2.5rem] bg-white/5 backdrop-blur-xl border border-white/10 shadow-hero overflow-hidden">
-                <div className="grid grid-cols-2 gap-1.5 sm:gap-2 p-1.5 sm:p-3 md:p-4 lg:p-6">
-                  {[1, 2, 3, 4].map((item) => (
-                    <div
-                      key={item}
-                      className="relative h-24 sm:h-32 md:h-40 lg:h-44 xl:h-48 rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-br from-white/10 to-white/5"
-                    >
-                      <Image
-                        src={`/images/landing/hero-${item}.jpg`}
-                        alt="Foodie showcase"
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 20vw"
-                        priority
-                        onError={(event) => {
-                          (event.target as HTMLImageElement).style.opacity = '0';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent" />
-                    </div>
-                  ))}
+                  <p className="text-3xl sm:text-4xl font-semibold text-white">8K+</p>
+                  <p>Experiences</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
+
+        {/* Experiences Section */}
         <section className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 md:py-16">
           <div className="text-center space-y-2 sm:space-y-3">
-            <p className="text-xs sm:text-sm uppercase tracking-[0.25em] sm:tracking-[0.35em] text-accent">Visual Food Discovery</p>
+             <p className="text-xs sm:text-sm uppercase tracking-[0.25em] sm:tracking-[0.35em] text-accent">Visual Food Discovery</p>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold px-4">Browse stunning dishes from our culinary collective</h2>
             <p className="text-xs sm:text-sm md:text-base text-white/70 max-w-2xl mx-auto px-4">
               Book in three taps: fall in love with flavours, choose your chef, and let the Foodie concierge handle the rest.
             </p>
           </div>
 
-          <div className="mt-8 sm:mt-10 md:mt-12 space-y-3 sm:space-y-4 columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-3 sm:gap-4 [column-fill:_balance]"><div className="contents">
-            {DISCOVERY_IMAGES.map(({ src, title, subtitle, trending }, index) => (
-              <Link
-                href="/register"
-                key={`${title}-${index}`}
-                className="group relative mb-3 sm:mb-4 break-inside-avoid block rounded-2xl sm:rounded-3xl lg:rounded-4xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm shadow-glow transition hover:border-accent/40 hover:shadow-accent/20"
-              >
-                <div className="relative">
-                  <Image
-                    src={src}
-                    alt={title}
-                    width={500}
-                    height={620}
-                    className="h-full w-full object-cover"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-80 transition group-hover:opacity-100" />
-
-                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 inline-flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-full bg-white/70 text-surface transition hover:bg-white">
-                    <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </div>
-
-                  {trending && (
-                    <span className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 inline-flex items-center gap-1 rounded-full bg-accent px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-white shadow-glow">
-                      <Flame className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                      <span className="hidden sm:inline">Trending</span>
-                    </span>
-                  )}
-
-                  <div className="absolute inset-x-2 bottom-2 sm:inset-x-3 sm:bottom-3 md:inset-x-4 md:bottom-4 space-y-0.5 sm:space-y-1 text-left">
-                    <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white leading-tight">{title}</h3>
-                    <p className="text-[10px] sm:text-xs text-white/70">{subtitle}</p>
-                  </div>
+          <div className="mt-8 sm:mt-10 md:mt-12 space-y-3 sm:space-y-4 columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-3 sm:gap-4 [column-fill:_balance]">
+            <div className="contents">
+              {loading &&
+                Array.from({ length: 8 }).map((_, i) => (
+                  <div key={`skeleton-${i}`} className="mb-3 sm:mb-4 break-inside-avoid aspect-[3/4] rounded-2xl sm:rounded-3xl bg-white/5 animate-pulse border border-white/10" />
+                ))}
+              {!loading && items.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-white/70 text-lg">No discovery items found.</p>
+                  <p className="text-white/50 text-sm mt-1">Check back later!</p>
                 </div>
-              </Link>
-            ))}
-          </div></div>
+              )}
+              {!loading &&
+                items.map((item, idx) => {
+                  const itemType = item.item_type || 'experience';
+                  const href = itemType === 'experience' 
+                    ? `/experiences/${item.id}` 
+                    : itemType === 'menu' 
+                    ? `/menus/${item.id}` 
+                    : `/meals/${item.id}`;
+                    
+                  // Vary aspect ratios for masonry effect
+                  const aspectRatios = ['aspect-[3/4]', 'aspect-square', 'aspect-[4/5]', 'aspect-[2/3]'];
+                  const aspectRatio = aspectRatios[idx % aspectRatios.length];
+                  
+                  return (
+                    <Link
+                      href={href}
+                      key={`${itemType}-${item.id}`}
+                      className="group relative mb-4 sm:mb-6 break-inside-avoid block rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl transition-all duration-500 hover:border-accent/40 hover:scale-[1.02] hover:-translate-y-1"
+                    >
+                      <div className={`relative ${aspectRatio} w-full`}>
+                        <Image
+                          src={item.image_url || 'https://images.unsplash.com/photo-1546069901-eacef0df6022?auto=format&fit=crop&w=900&q=80'}
+                          alt={item.name}
+                          fill
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          unoptimized
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90 transition group-hover:opacity-100" />
+
+                        {/* Item Type Badge */}
+                        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-xl border border-white/10 ${
+                            itemType === 'experience' ? 'bg-accent/80' : 
+                            itemType === 'menu' ? 'bg-blue-600/80' : 'bg-emerald-600/80'
+                          }`}>
+                            {itemType}
+                          </span>
+                        </div>
+
+                        {itemType === 'experience' && (
+                          <span className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 text-[10px] font-semibold text-white border border-white/10">
+                            <Flame className="h-3 w-3 text-accent" />
+                            Featured
+                          </span>
+                        )}
+
+                        <div className="absolute inset-x-6 bottom-6 space-y-2">
+                          <h3 className="text-lg md:text-xl font-bold text-white leading-tight drop-shadow-lg">{item.name}</h3>
+                          
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-white/70 font-medium capitalize">
+                              {itemType === 'menu' ? `${item.guest_min}+ guests` : (item.category || itemType).replace('_', ' ')}
+                            </p>
+                            {isAuthenticated && (
+                              <>
+                                {item.startingPrice != null && (
+                                  <p className="text-sm font-bold text-accent">KES {item.startingPrice.toLocaleString()}</p>
+                                )}
+                                {itemType === 'meal' && item.price > 0 && (
+                                  <p className="text-sm font-bold text-accent">KES {item.price.toLocaleString()}</p>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+            </div>
+          </div>
 
           <div className="mt-8 sm:mt-10 flex justify-center">
-            <Link
-              href="/discover"
-              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.98]"
-            >
-              Explore More Dishes
-              <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href={getDashboardLink()}
+                className="inline-flex items-center gap-3 rounded-full bg-accent px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold text-white shadow-glow transition hover:bg-accent-strong active:scale-95"
+              >
+                Go to Dashboard
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Link>
+            ) : (
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-3 rounded-full bg-accent px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold text-white shadow-glow transition hover:bg-accent-strong active:scale-95"
+              >
+                Start Your Journey
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Link>
+            )}
+
           </div>
         </section>
+
+        {/* How It Works Section */}
         <section className="relative z-10 bg-black/20 backdrop-blur border-y border-white/10">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 md:py-16 space-y-8 sm:space-y-10">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-center sm:text-left">How Foodie Works</h2>
@@ -287,6 +301,7 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Testimonials Section */}
         <section className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
           <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8 sm:gap-10 md:gap-12 items-center">
             <div className="space-y-4 sm:space-y-6">

@@ -35,16 +35,22 @@ export const onboardingService = {
         }, true);
     },
 
-    // Client Flows
     async saveClientData(data: ClientOnboardingData): Promise<ApiResponse<any>> {
         return apiRequest({
             url: '/users/onboarding/client/',
-            method: 'PATCH', // RetrieveUpdateAPIView supports PATCH
+            method: 'PATCH',
             data,
         }, true);
     },
 
-    // Chef Flows
+    async getClientData(): Promise<ApiResponse<ClientOnboardingData>> {
+        return apiRequest({
+            url: '/users/onboarding/client/',
+            method: 'GET',
+        }, true);
+    },
+
+
     async saveChefData(data: ChefOnboardingData): Promise<ApiResponse<any>> {
         return apiRequest({
             url: '/chefs/onboarding/',
@@ -53,11 +59,36 @@ export const onboardingService = {
         }, true);
     },
 
+    async getChefData(): Promise<ApiResponse<ChefOnboardingData>> {
+        return apiRequest({
+            url: '/chefs/onboarding/',
+            method: 'GET',
+        }, true);
+    },
+
+
     // Complete Onboarding (Both roles)
     async completeOnboarding(): Promise<ApiResponse<{ message: string; next_screen: string }>> {
         return apiRequest({
             url: '/users/onboarding/complete/',
             method: 'POST',
         }, true);
+    },
+
+    // File Upload
+    async uploadFile(file: File, type: 'portfolio' | 'certifications'): Promise<ApiResponse<{ url: string; path: string }>> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+
+        return apiRequest({
+            url: '/chefs/upload/',
+            method: 'POST',
+            data: formData,
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        }, true);
     }
 };
+

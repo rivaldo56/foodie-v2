@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_post_onboarding_email(self, user_id):
     """
@@ -21,10 +22,12 @@ def send_post_onboarding_email(self, user_id):
         logger.error(f"User with id {user_id} not found.")
         return
 
-    comm_type = 'onboarding_welcome'
+    comm_type = "onboarding_welcome"
 
     # Idempotency Check
-    if CommunicationLog.objects.filter(user=user, communication_type=comm_type, status=CommunicationLog.Status.SENT).exists():
+    if CommunicationLog.objects.filter(
+        user=user, communication_type=comm_type, status=CommunicationLog.Status.SENT
+    ).exists():
         logger.info(f"Onboarding email already sent to user {user.email}. Skipping.")
         return
 
@@ -32,7 +35,7 @@ def send_post_onboarding_email(self, user_id):
     log, created = CommunicationLog.objects.get_or_create(
         user=user,
         communication_type=comm_type,
-        defaults={'status': CommunicationLog.Status.PENDING}
+        defaults={"status": CommunicationLog.Status.PENDING},
     )
 
     # Double check race condition if not created
@@ -42,9 +45,9 @@ def send_post_onboarding_email(self, user_id):
     subject = ""
     template_name = ""
     cta_link = ""
-    
+
     # Base URL for deep links
-    fe_url = getattr(settings, 'FE_URL', "http://localhost:3000")
+    fe_url = getattr(settings, "FE_URL", "http://localhost:3000")
 
     # Content Logic
     if user.role == User.Role.CLIENT:
@@ -63,10 +66,10 @@ def send_post_onboarding_email(self, user_id):
         return
 
     context = {
-        'first_name': user.first_name,
-        'last_name': user.last_name,
-        'user': user,
-        'cta_link': cta_link,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "user": user,
+        "cta_link": cta_link,
     }
 
     try:
@@ -81,7 +84,7 @@ def send_post_onboarding_email(self, user_id):
             subject=subject,
             body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user.email]
+            to=[user.email],
         )
         msg.attach_alternative(html_content, "text/html")
         msg.send()
@@ -96,6 +99,6 @@ def send_post_onboarding_email(self, user_id):
         log.status = CommunicationLog.Status.FAILED
         log.error_message = str(e)
         log.save()
-        
+
         # Retry logic
         raise self.retry(exc=e)

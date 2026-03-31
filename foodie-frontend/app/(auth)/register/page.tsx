@@ -1,26 +1,29 @@
 'use client';
+import { Suspense } from 'react';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'next/navigation';
+import { useState, useEffect} from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
-export default function RegisterPage() {
-  const { register } = useAuth();
+function RegisterForm() {
+  const { register, loading } = useAuth();
   const searchParams = useSearchParams();
-  const type = searchParams.get('type');
+  const initialRole = searchParams.get('role') === 'chef' ? 'chef' : 'client';
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'client' | 'chef' | 'farmer' | 'business'>(
-    (type === 'farmer' || type === 'business') ? type : 'client'
-  );
+  const [role, setRole] = useState<'client' | 'chef'>(initialRole);
   const [error, setError] = useState<string | null>(null);
 
-  // Lock role selection if type is provided in URL
-  const isRoleLocked = !!type;
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    if (roleParam === 'chef' || roleParam === 'client') {
+      setRole(roleParam as 'client' | 'chef');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,30 +51,22 @@ export default function RegisterPage() {
           <p className="text-sm text-white/60">Select your role to personalise the experience.</p>
         </div>
 
-        {!isRoleLocked && (
-          <div className="grid grid-cols-2 gap-3 rounded-full border border-white/10 bg-white/5 p-1 text-sm font-medium">
-            <button
-              type="button"
-              onClick={() => setRole('client')}
-              className={`rounded-full px-4 py-2 transition ${role === 'client' ? 'bg-orange-500 text-white shadow-glow' : 'text-white/70 hover:text-white'}`}
-            >
-              Client
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('chef')}
-              className={`rounded-full px-4 py-2 transition ${role === 'chef' ? 'bg-orange-500 text-white shadow-glow' : 'text-white/70 hover:text-white'}`}
-            >
-              Chef
-            </button>
-          </div>
-        )}
-
-        {isRoleLocked && (
-          <div className="text-center p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium">
-            Registering as a {type === 'farmer' ? 'Farmer' : 'Supplier'}
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-3 rounded-full border border-white/10 bg-white/5 p-1 text-sm font-medium">
+          <button
+            type="button"
+            onClick={() => setRole('client')}
+            className={`rounded-full px-4 py-2 transition ${role === 'client' ? 'bg-orange-500 text-white shadow-glow' : 'text-white/70 hover:text-white'}`}
+          >
+            Client
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole('chef')}
+            className={`rounded-full px-4 py-2 transition ${role === 'chef' ? 'bg-orange-500 text-white shadow-glow' : 'text-white/70 hover:text-white'}`}
+          >
+            Chef
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -135,9 +130,10 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            className="inline-flex w-full items-center justify-center rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-400"
+            disabled={loading}
+            className="inline-flex w-full items-center justify-center rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:opacity-60"
           >
-            Create account
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
 
@@ -149,5 +145,29 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+function RegisterPageContent() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-orange-500 border-t-transparent"></div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+
+
+
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}>
+      <RegisterPageContent />
+    </Suspense>
   );
 }

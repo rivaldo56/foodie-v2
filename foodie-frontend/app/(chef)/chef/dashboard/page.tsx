@@ -200,7 +200,7 @@ export default function ChefDashboardPage() {
       title: `Booking: ${b.client_name}`,
       date: new Date(b.booking_date),
       type: 'booking' as const,
-      description: `${b.service_type.replace('_', ' ')} for ${b.number_of_guests} guests`,
+      description: `${(b.service_type || '').replace('_', ' ')} for ${b.number_of_guests} guests`,
       startTime: new Date(b.booking_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }))),
     ...events.map(e => ({
@@ -319,7 +319,7 @@ export default function ChefDashboardPage() {
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
                       <div className="text-left sm:text-right">
-                        <p className="text-xs sm:text-sm text-white/60">{booking.service_type.replace('_', ' ')}</p>
+                        <p className="text-xs sm:text-sm text-white/60">{(booking.service_type || '').replace('_', ' ')}</p>
                         <div className="flex items-center gap-2 text-xs text-white/50">
                           <Users className="h-3 w-3" />
                           {booking.number_of_guests} guests

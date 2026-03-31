@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -28,7 +29,7 @@ from drf_yasg import openapi
 schema_view = get_schema_view(
     openapi.Info(
         title="ChefConnect API",
-        default_version='v1',
+        default_version="v1",
         description="API for ChefConnect - Connect with professional chefs",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="contact@chefconnect.com"),
@@ -38,47 +39,57 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @permission_classes([permissions.AllowAny])
 def api_root(request):
     """
     Welcome to ChefConnect API
     """
-    return Response({
-        'message': 'Welcome to ChefConnect API',
-        'version': 'v1',
-        'documentation': {
-            'swagger': request.build_absolute_uri('/swagger/'),
-            'redoc': request.build_absolute_uri('/redoc/'),
-        },
-        'endpoints': {
-            'users': request.build_absolute_uri('/api/users/'),
-            'chefs': request.build_absolute_uri('/api/chefs/'),
-            'bookings': request.build_absolute_uri('/api/bookings/'),
-            'chat': request.build_absolute_uri('/api/chat/'),
-            'payments': request.build_absolute_uri('/api/payments/'),
-        },
-        'admin': request.build_absolute_uri('/admin/'),
-    })
+    return Response(
+        {
+            "message": "Welcome to ChefConnect API",
+            "version": "v1",
+            "documentation": {
+                "swagger": request.build_absolute_uri("/swagger/"),
+                "redoc": request.build_absolute_uri("/redoc/"),
+            },
+            "endpoints": {
+                "users": request.build_absolute_uri("/api/users/"),
+                "chefs": request.build_absolute_uri("/api/chefs/"),
+                "bookings": request.build_absolute_uri("/api/bookings/"),
+                "chat": request.build_absolute_uri("/api/chat/"),
+                "payments": request.build_absolute_uri("/api/payments/"),
+            },
+            "admin": request.build_absolute_uri("/admin/"),
+        }
+    )
+
 
 urlpatterns = [
     # Root API endpoint
-    path('', api_root, name='api-root'),
-    path('api/', api_root, name='api-root-alt'),
-    
+    path("", api_root, name="api-root"),
+    path("api/", api_root, name="api-root-alt"),
     # Admin and documentation
-    path('admin/', admin.site.urls),
-    path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    
+    path("admin/", admin.site.urls),
+    path(
+        "swagger<format>/", schema_view.without_ui(cache_timeout=0), name="schema-json"
+    ),
+    path(
+        "swagger/",
+        schema_view.with_ui("swagger", cache_timeout=0),
+        name="schema-swagger-ui",
+    ),
+    path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
     # API Endpoints
-    path('api/users/', include('users.urls')),
-    path('api/chefs/', include('chefs.urls')),
-    path('api/bookings/', include('bookings.urls')),
-    path('api/chat/', include('chat.urls')),
-    path('api/payments/', include('payments.urls')),
-    path('api/ai/', include('ai.urls')),
+    path("api/users/", include("users.urls")),
+    path("api/chefs/", include("chefs.urls")),
+    path("api/bookings/", include("bookings.urls")),
+    path("api/chat/", include("chat.urls")),
+    path("api/payments/", include("payments.urls")),
+    path("api/ai/", include("ai.urls")),
+    path("api/experiences/", include("experiences.urls")),
+    path("api/admin/", include("admin_api.urls")),
 ]
 
 

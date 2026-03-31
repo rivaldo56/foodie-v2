@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 # Load .env file
 load_dotenv()
 
-api_key = os.getenv('GEMINI_API_KEY')
+api_key = os.getenv("GEMINI_API_KEY")
 print(f"Loaded API Key: '{api_key}'")
 
 if not api_key:
@@ -14,7 +14,7 @@ if not api_key:
 
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel("gemini-pro")
     response = model.generate_content("Hello, are you working?")
     print("Success! Response from Gemini:")
     print(response.text)

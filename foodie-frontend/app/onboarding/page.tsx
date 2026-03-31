@@ -56,6 +56,12 @@ export default function OnboardingPage() {
                 return;
             }
 
+            // Enforce Role-Based Access
+            if (user?.role === 'chef') {
+                router.replace('/chef-onboarding');
+                return;
+            }
+
             try {
                 // Optionally fetch existing data if re-entering
                 const statusRes = await onboardingService.getStatus();
@@ -63,8 +69,10 @@ export default function OnboardingPage() {
                     router.replace('/client/home');
                     return;
                 }
-                // Could fetch previous data here if endpoint supported GET data (ClientOnboardingView does)
-                const dataRes = await onboardingService.saveClientData({}); // Just to get data? View is RetrieveUpdate.
+                
+                // Use GET instead of empty PATCH to fetch data
+                const dataRes = await onboardingService.getClientData();
+
                 if (dataRes.data) {
                     const serverData = dataRes.data;
                     setData(prev => ({

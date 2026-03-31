@@ -94,12 +94,13 @@ export default function DiscoverPage() {
     if (searchQuery) {
       const lower = searchQuery.toLowerCase();
       list = list.filter((meal) => {
-        const nameMatch = meal.name.toLowerCase().includes(lower);
-        const categoryMatch = meal.category?.toLowerCase().includes(lower);
-        const descriptionMatch = meal.description?.toLowerCase().includes(lower);
+        const nameMatch = (meal.name || '').toLowerCase().includes(lower);
+        const categoryMatch = (meal.category || '').toLowerCase().includes(lower);
+        const descriptionMatch = (meal.description || '').toLowerCase().includes(lower);
         return nameMatch || categoryMatch || descriptionMatch;
       });
     }
+
 
     return list;
   }, [meals, searchQuery, selectedCategory]);

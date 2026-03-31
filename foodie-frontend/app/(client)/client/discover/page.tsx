@@ -1,5 +1,6 @@
 /* eslint-disable react/no-unescaped-entities */
 'use client';
+import { Suspense } from 'react';
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -11,7 +12,10 @@ import MenuItemCard from '@/components/MenuItemCard';
 import MealDetailsView from '@/components/MealDetailsView';
 import { Meal } from '@/services/booking.service';
 import CategoryButton from '@/components/CategoryButton';
-import { Search, SlidersHorizontal, TrendingUp, Flame, ChefHat, Award, Wand2, Sparkles, Utensils, Loader2 } from 'lucide-react';
+import { Recipe } from '@/types/recipe';
+import RecipeCard from '@/components/recipes/RecipeCard';
+import { recipeService } from '@/services/recipe.service';
+import { Search, SlidersHorizontal, TrendingUp, Flame, ChefHat, Award, Wand2, Sparkles, Utensils, BookOpen, Loader2 } from 'lucide-react';
 
 const CATEGORIES = [
   { id: 'trending', label: 'Trending', icon: TrendingUp },
@@ -30,9 +34,9 @@ const DISH_CATEGORIES = [
   { value: 'side_dish', label: 'Side Dishes' },
 ];
 
-type TabType = 'chefs' | 'dishes';
+type TabType = 'chefs' | 'dishes' | 'recipes';
 
-export default function ClientDiscoverPage() {
+function ClientDiscoverContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, loading } = useAuth();
@@ -46,7 +50,12 @@ export default function ClientDiscoverPage() {
 
   // Menu items state
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+
   const [filteredMenuItems, setFilteredMenuItems] = useState<MenuItem[]>([]);
+
+  // Recipes state
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
 
   // UI state
   const [dataLoading, setDataLoading] = useState(true);
@@ -61,8 +70,10 @@ export default function ClientDiscoverPage() {
   // Infinite scroll states
   const [displayedChefs, setDisplayedChefs] = useState<Chef[]>([]);
   const [displayedMenuItems, setDisplayedMenuItems] = useState<MenuItem[]>([]);
+  const [displayedRecipes, setDisplayedRecipes] = useState<Recipe[]>([]);
   const [chefPage, setChefPage] = useState(1);
   const [dishPage, setDishPage] = useState(1);
+  const [recipePage, setRecipePage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -81,13 +92,15 @@ export default function ClientDiscoverPage() {
   useEffect(() => {
     if (activeTab === 'chefs') {
       filterChefs();
+    } else if (activeTab === 'recipes') {
+      filterRecipes();
     } else {
       filterMenuItems();
     }
     // Reset pagination when filters change
     setChefPage(1);
     setDishPage(1);
-  }, [activeTab, chefs, menuItems, searchQuery, activeCategory, selectedDishCategory, selectedChef, priceRange]);
+  }, [activeTab, chefs, menuItems, recipes, searchQuery, activeCategory, selectedDishCategory, selectedChef, priceRange]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -110,30 +123,38 @@ export default function ClientDiscoverPage() {
   const loadData = async () => {
     try {
       setDataLoading(true);
-      const [chefsResponse, menuItemsResponse] = await Promise.all([
+      const [chefsResponse, menuItemsResponse, recipesResult] = await Promise.allSettled([
         getChefs(),
         getMenuItems(),
+        recipeService.getRecipes(),
       ]);
 
-      if (chefsResponse.data) {
-        const chefsData = Array.isArray(chefsResponse.data) ? chefsResponse.data : [];
+      if (chefsResponse.status === 'fulfilled' && chefsResponse.value.data) {
+        const chefsData = Array.isArray(chefsResponse.value.data) ? chefsResponse.value.data : [];
         setChefs(chefsData);
       }
 
-      if (menuItemsResponse.data) {
-        // Handle paginated response
+      if (menuItemsResponse.status === 'fulfilled' && menuItemsResponse.value.data) {
         let menuItemsData: MenuItem[] = [];
-        if (Array.isArray(menuItemsResponse.data)) {
-          menuItemsData = menuItemsResponse.data;
-        } else if (menuItemsResponse.data && 'results' in menuItemsResponse.data) {
-          menuItemsData = (menuItemsResponse.data as any).results;
+        const data = menuItemsResponse.value.data;
+        if (Array.isArray(data)) {
+          menuItemsData = data;
+        } else if (data && typeof data === 'object' && 'results' in data) {
+          menuItemsData = (data as any).results;
         }
-        console.log('📦 Menu Items Loaded:', menuItemsData.length, menuItemsData);
         setMenuItems(menuItemsData);
       }
 
-      if (chefsResponse.error || menuItemsResponse.error) {
-        setError(chefsResponse.error || menuItemsResponse.error || 'Failed to load data');
+      if (recipesResult.status === 'fulfilled' && recipesResult.value) {
+        setRecipes(recipesResult.value);
+      }
+
+      // Handle major component errors
+      const chefError = chefsResponse.status === 'fulfilled' ? chefsResponse.value.error : null;
+      const menuError = menuItemsResponse.status === 'fulfilled' ? menuItemsResponse.value.error : null;
+      
+      if (chefError || menuError) {
+        setError(chefError || menuError || 'Failed to load primary data');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -170,9 +191,9 @@ export default function ClientDiscoverPage() {
         case 'hot':
           filtered = filtered.filter(chef => (chef.average_rating || 0) >= 4.5);
           break;
-        case 'new':
-          filtered = filtered.sort((a, b) => a.id - b.id).slice(0, 10);
-          break;
+          case 'new':
+            filtered = filtered.sort((a, b) => String(a.id).localeCompare(String(b.id))).slice(0, 10);
+            break;
         case 'special':
           filtered = filtered.filter(chef => chef.is_verified);
           break;
@@ -183,6 +204,25 @@ export default function ClientDiscoverPage() {
     // Initial display - show first page
     const pageSize = 12;
     setDisplayedChefs(filtered.slice(0, pageSize));
+  };
+
+  const filterRecipes = () => {
+    if (!Array.isArray(recipes)) return;
+    
+    let filtered = [...recipes];
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(recipe => {
+         return recipe.title.toLowerCase().includes(query) || 
+                recipe.description.toLowerCase().includes(query);
+      });
+    }
+     
+    setFilteredRecipes(filtered);
+    const pageSize = 12;
+    setDisplayedRecipes(filtered.slice(0, pageSize));
   };
 
   const filterMenuItems = () => {
@@ -242,6 +282,16 @@ export default function ClientDiscoverPage() {
         if (moreChefs.length > 0) {
           setDisplayedChefs(prev => [...prev, ...moreChefs]);
           setChefPage(nextPage);
+        }
+      } else if (activeTab === 'recipes') { // Corrected logic flow
+        const nextPage = recipePage + 1;
+        const start = nextPage * pageSize;
+        const end = start + pageSize;
+        const moreRecipes = filteredRecipes.slice(start, end);
+
+        if (moreRecipes.length > 0) {
+          setDisplayedRecipes(prev => [...prev, ...moreRecipes]);
+          setRecipePage(nextPage);
         }
       } else {
         const nextPage = dishPage + 1;
@@ -317,6 +367,18 @@ export default function ClientDiscoverPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 p-1 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 w-full sm:w-fit overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('recipes')}
+          className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'recipes'
+            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+            : 'text-white/70 hover:text-white hover:bg-white/5'
+            }`}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            <span>Recipes</span>
+          </div>
+        </button>
         <button
           onClick={() => setActiveTab('dishes')}
           className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'dishes'
@@ -451,7 +513,7 @@ export default function ClientDiscoverPage() {
 
       {/* Results Count */}
       <div className="text-xs sm:text-sm text-white/60">
-        Showing {activeTab === 'chefs' ? filteredChefs.length : filteredMenuItems.length} of {activeTab === 'chefs' ? chefs.length : menuItems.length} results
+        Showing {activeTab === 'chefs' ? filteredChefs.length : activeTab === 'recipes' ? filteredRecipes.length : filteredMenuItems.length} results
       </div>
 
       {/* Grid */}
@@ -469,6 +531,21 @@ export default function ClientDiscoverPage() {
               <ChefCard key={chef.id} chef={chef} />
             ))}
           </div>
+        )
+      ) : activeTab === 'recipes' ? (
+        filteredRecipes.length === 0 && !error ? (
+             <div className="rounded-2xl border border-white/10 bg-white/5 p-8 sm:p-12 text-center">
+                <p className="text-white/70 mb-2">No recipes found</p>
+                <p className="text-sm text-white/50">
+                  Try adjusting your search
+                </p>
+              </div>
+        ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+                {displayedRecipes.map(recipe => (
+                   <RecipeCard key={recipe.id} recipe={recipe} />
+                ))}
+            </div>
         )
       ) : (
         filteredMenuItems.length === 0 && !error ? (
@@ -511,5 +588,19 @@ export default function ClientDiscoverPage() {
         />
       )}
     </div>
+  );
+}
+
+
+
+export default function ClientDiscoverPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+      </div>
+    }>
+      <ClientDiscoverContent />
+    </Suspense>
   );
 }

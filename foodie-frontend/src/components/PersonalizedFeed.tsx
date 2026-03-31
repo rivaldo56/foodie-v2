@@ -36,12 +36,13 @@ export default function PersonalizedFeed() {
     const [hasMore, setHasMore] = useState(true);
     const observerTarget = useRef<HTMLDivElement>(null);
 
-    const trackView = useCallback(async (chefId: number) => {
+    const trackView = async (chefId: string | number) => {
         if (!isAuthenticated) return;
 
         try {
             const token = localStorage.getItem('token');
-            await fetch('http://127.0.0.1:8000/api/ai/recommendations/track/', {
+            const response = await fetch(
+                `/api/ai/recommendations/track/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -57,16 +58,16 @@ export default function PersonalizedFeed() {
         } catch (error) {
             console.error('Failed to track view:', error);
         }
-    }, [isAuthenticated]);
+    };
 
-    const fetchRecommendations = useCallback(async (pageNum: number = 1) => {
+    const fetchRecommendations = async (pageNum: number = 1) => {
         if (!isAuthenticated) return;
 
         setIsLoading(true);
         try {
             const token = localStorage.getItem('token');
             const response = await fetch(
-                `http://127.0.0.1:8000/api/ai/recommendations/feed/?type=chef&limit=10`,
+                `/api/ai/recommendations/feed/?type=chef&limit=10`,
                 {
                     headers: {
                         Authorization: `Token ${token}`,
@@ -89,13 +90,13 @@ export default function PersonalizedFeed() {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated]);
+    };
 
-    const fetchTrending = useCallback(async () => {
+    const fetchTrending = async () => {
         setIsLoading(true);
         try {
             const response = await fetch(
-                'http://127.0.0.1:8000/api/ai/recommendations/trending/?type=chef&limit=10'
+                '/api/ai/recommendations/trending/?type=chef&limit=10'
             );
 
             const data = await response.json();
@@ -108,7 +109,7 @@ export default function PersonalizedFeed() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    };
 
     useEffect(() => {
         if (activeTab === 'foryou' && isAuthenticated) {
@@ -116,7 +117,7 @@ export default function PersonalizedFeed() {
         } else if (activeTab === 'trending') {
             fetchTrending();
         }
-    }, [activeTab, isAuthenticated, fetchRecommendations, fetchTrending]);
+    }, [activeTab, isAuthenticated]);
 
     // Infinite scroll
     useEffect(() => {
@@ -135,7 +136,7 @@ export default function PersonalizedFeed() {
         }
 
         return () => observer.disconnect();
-    }, [hasMore, isLoading, page, activeTab, fetchRecommendations]);
+    }, [hasMore, isLoading, page, activeTab]);
 
     // Track views when chef cards come into view
     useEffect(() => {
@@ -159,7 +160,7 @@ export default function PersonalizedFeed() {
         });
 
         return () => observers.forEach((obs) => obs.disconnect());
-    }, [recommendations, trackView]);
+    }, [recommendations]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#1a0f0f] via-[#0f0c0a] to-black">

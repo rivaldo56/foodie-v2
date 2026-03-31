@@ -13,13 +13,20 @@ import os
 import json
 import shutil
 
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python import_figma_export.py /path/to/figma-export [frontend-path]")
+        print(
+            "Usage: python import_figma_export.py /path/to/figma-export [frontend-path]"
+        )
         sys.exit(1)
 
     figma_dir = os.path.abspath(sys.argv[1])
-    frontend_dir = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else os.path.abspath("./foodie-frontend")
+    frontend_dir = (
+        os.path.abspath(sys.argv[2])
+        if len(sys.argv) > 2
+        else os.path.abspath("./foodie-frontend")
+    )
 
     images_dir = os.path.join(figma_dir, "images")
     meta_file = os.path.join(figma_dir, "meta.json")
@@ -54,11 +61,16 @@ def main():
                 container = meta[key]
                 # container may be dict or list
                 if isinstance(container, dict):
-                    for k,v in container.items():
+                    for k, v in container.items():
                         # try to find filename
                         filename = None
                         if isinstance(v, dict):
-                            filename = v.get("fileName") or v.get("image") or v.get("export") or v.get("filename")
+                            filename = (
+                                v.get("fileName")
+                                or v.get("image")
+                                or v.get("export")
+                                or v.get("filename")
+                            )
                         if not filename:
                             # fallback: try meta top-level mapping images -> file names
                             pass
@@ -67,15 +79,21 @@ def main():
                 elif isinstance(container, list):
                     for item in container:
                         name = item.get("name") or item.get("id")
-                        fname = item.get("fileName") or item.get("image") or item.get("filename")
+                        fname = (
+                            item.get("fileName")
+                            or item.get("image")
+                            or item.get("filename")
+                        )
                         if name and fname:
                             mapping[name] = "/images/" + os.path.basename(fname)
                 break
         # fallback: look for entries that directly map filenames
         if not mapping:
             # try top-level entries: meta might be {"<id>": "file.png", ...}
-            for k,v in meta.items():
-                if isinstance(v, str) and v.lower().endswith((".png",".jpg",".jpeg",".svg","webp")):
+            for k, v in meta.items():
+                if isinstance(v, str) and v.lower().endswith(
+                    (".png", ".jpg", ".jpeg", ".svg", "webp")
+                ):
                     mapping[k] = "/images/" + os.path.basename(v)
 
     # if no mapping found, create mapping of filenames -> filenames
@@ -98,6 +116,7 @@ def main():
         f.write("};\n\nexport default ASSETS;\n")
     print("Wrote mapping to", assets_js_path)
     print("Done. You can import ASSETS from src/assets.js in your frontend.")
+
 
 if __name__ == "__main__":
     main()

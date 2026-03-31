@@ -1,143 +1,88 @@
-"use client";
-
-import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { 
-  BarChart3, 
-  Users, 
-  ChefHat, 
-  CalendarDays, 
-  ShoppingBag, 
+  LayoutDashboard, 
   UtensilsCrossed, 
-  Wallet, 
+  Menu as MenuIcon, 
+  CalendarDays, 
+  Users, 
   Settings,
-  LayoutDashboard,
   LogOut,
-  Bell,
-  Menu,
-  ChevronLeft
+  Home,
+  ChefHat
 } from "lucide-react";
-import { motion } from "framer-motion";
-
-const sidebarLinks = [
-  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "Chefs", href: "/admin/chefs", icon: ChefHat },
-  { name: "Bookings", href: "/admin/bookings", icon: CalendarDays },
-  { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
-  { name: "Menus", href: "/admin/menus", icon: UtensilsCrossed },
-  { name: "Payouts", href: "/admin/payouts", icon: Wallet },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
-];
+import { Button } from "@/components/ui/button";
+import { AdminGuard } from "@/components/AdminGuard";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-
   return (
-    <div className="flex h-screen bg-neutral-50 dark:bg-neutral-950">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-neutral-900 
-        border-r border-neutral-200 dark:border-neutral-800 flex flex-col transition-transform duration-300
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-          <Link href="/admin/dashboard" className="flex items-center gap-2 font-bold text-xl text-primary-600">
-            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white">
-              F
-            </div>
-            <span>Foodie Admin</span>
-          </Link>
-          <button 
-            onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden p-2 text-neutral-500 hover:bg-neutral-100 rounded-lg"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {sidebarLinks.map((link) => {
-            const isActive = pathname === link.href || (link.href === "/admin/dashboard" && pathname === "/admin");
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  isActive 
-                    ? "bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400" 
-                    : "text-neutral-600 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:bg-neutral-800"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium text-sm">{link.name}</span>
-                {isActive && (
-                   <motion.div
-                     layoutId="active-sidebar"
-                     className="ml-auto w-1 h-4 bg-primary-600 rounded-full"
-                   />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800">
-          <button className="flex items-center gap-3 px-3 py-2 w-full text-neutral-600 hover:bg-red-50 hover:text-red-600 dark:text-neutral-400 dark:hover:bg-red-900/10 dark:hover:text-red-400 transition-colors rounded-lg">
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium text-sm">Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden w-full">
-        {/* Header */}
-        <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex items-center justify-between px-4 md:px-8">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden p-2 -ml-2 text-neutral-600 hover:bg-neutral-100 rounded-lg"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <h1 className="text-lg font-semibold text-neutral-800 dark:text-neutral-100 uppercase tracking-wider text-xs">
-              {sidebarLinks.find(l => pathname === l.href)?.name || "Overview"}
-            </h1>
+    <AdminGuard>
+      <div className="flex h-screen bg-[#0f1012] text-[#f9fafb]">
+        {/* Sidebar */}
+        <aside className="w-64 bg-[#16181d] border-r border-white/5 shadow-xl hidden md:flex flex-col">
+          {/* ... sidebar content ... */}
+          <div className="p-6 border-b border-white/5">
+            <Link href="/admin" className="flex items-center gap-2 font-bold text-xl text-[#ff7642]">
+              <UtensilsCrossed className="h-6 w-6" />
+              <span>Foodie Admin</span>
+            </Link>
           </div>
           
-          <div className="flex items-center gap-4">
-            <button className="p-2 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-neutral-900" />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 overflow-hidden">
-               {/* Avatar placeholder */}
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+            <NavItem href="/admin" icon={<LayoutDashboard size={20} />} label="Dashboard" />
+            <NavItem href="/admin/experiences" icon={<UtensilsCrossed size={20} />} label="Experiences" />
+            <NavItem href="/admin/menus" icon={<MenuIcon size={20} />} label="Menus" />
+            <NavItem href="/admin/bookings" icon={<CalendarDays size={20} />} label="Bookings" />
+            <NavItem href="/admin/payments" icon={<Settings size={20} />} label="Payments" />
+            <NavItem href="/admin/chefs" icon={<Users size={20} />} label="Chefs" />
+            <NavItem href="/admin/users" icon={<Users size={20} />} label="Users" />
+            <NavItem href="/admin/settings" icon={<Settings size={20} />} label="Settings" />
+            
+            <div className="pt-4 mt-4 border-t border-white/5 space-y-1">
+              <p className="px-3 text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-2">Debug Views</p>
+              <NavItem href="/" icon={<Home size={20} />} label="View Site" />
+              <NavItem href="/chef/dashboard" icon={<ChefHat size={20} />} label="Chef View" />
             </div>
-          </div>
-        </header>
+          </nav>
 
-        {/* Scrollable Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          {children}
+          <div className="p-4 border-t border-white/5">
+            <Button variant="ghost" className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors">
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#0f1012]">
+          <header className="bg-[#16181d] border-b border-white/5 p-4 flex items-center justify-between md:hidden">
+             <Link href="/admin" className="flex items-center gap-2 font-bold text-xl text-[#ff7642]">
+              <UtensilsCrossed className="h-6 w-6" />
+              <span>Foodie Admin</span>
+            </Link>
+          </header>
+
+          <main className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+            {children}
+          </main>
         </div>
-      </main>
-    </div>
+      </div>
+    </AdminGuard>
   );
 }
+
+function NavItem({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 px-3 py-2 text-[#cbd5f5] rounded-lg hover:bg-[#ff7642]/10 hover:text-[#ff7642] transition-colors"
+    >
+      {icon}
+      <span className="font-medium">{label}</span>
+    </Link>
+  );
+}
+console.log("AdminLayout");

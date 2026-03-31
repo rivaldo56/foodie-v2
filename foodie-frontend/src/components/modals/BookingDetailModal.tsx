@@ -297,3 +297,104 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onStatusU
         </div>
     );
 }
+                        </div>
+                    </div>
+
+                    {/* Location */}
+                    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 hover:from-white/10 hover:border-orange-500/20 transition-all">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="p-1.5 rounded-lg bg-orange-500/20">
+                                <MapPin className="h-4 w-4 text-orange-400" />
+                            </div>
+                            <span className="text-xs font-medium text-white/50 uppercase tracking-wide">Service Location</span>
+                        </div>
+                        <p className="text-white font-medium">{(booking as any).service_address || booking.service_address || (booking as any).address || 'Address not provided'}</p>
+                        <p className="text-sm text-white/60 mt-1">
+                            {[(booking as any).service_city || booking.service_city || (booking as any).city, 
+                              (booking as any).service_state || booking.service_state || (booking as any).state, 
+                              (booking as any).service_zip_code || booking.service_zip_code || (booking as any).zip_code].filter(Boolean).join(', ')}
+                        </p>
+                    </div>
+
+                    {/* Special Requests */}
+                    {booking.special_requests && (
+                        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 hover:from-white/10 hover:border-orange-500/20 transition-all">
+                            <h3 className="text-xs font-medium text-white/50 mb-3 uppercase tracking-wide">Special Requests</h3>
+                            <p className="text-white text-sm leading-relaxed">{booking.special_requests}</p>
+                        </div>
+                    )}
+
+                    {/* Dietary Requirements */}
+                    {booking.dietary_requirements && booking.dietary_requirements.length > 0 && (
+                        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 hover:from-white/10 hover:border-orange-500/20 transition-all">
+                            <h3 className="text-xs font-medium text-white/50 mb-3 uppercase tracking-wide">Dietary Requirements</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {booking.dietary_requirements.map((req, index) => (
+                                    <span
+                                        key={index}
+                                        className="px-3 py-1.5 rounded-full bg-white/10 text-white text-xs font-medium border border-white/5 hover:bg-white/20 transition-colors"
+                                    >
+                                        {req}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Warning for pending bookings */}
+                    {isPending && (
+                        <div className="rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 p-5 flex items-start gap-3 shadow-lg shadow-yellow-500/5">
+                            <div className="p-2 rounded-lg bg-yellow-500/20">
+                                <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0" />
+                            </div>
+                            <p className="text-sm text-yellow-100 leading-relaxed">
+                                This booking is pending your response. Please accept or reject it as soon as possible.
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Actions with gradient background */}
+                <div className="sticky bottom-0 border-t border-white/10 bg-gradient-to-r from-orange-500/5 via-transparent to-transparent backdrop-blur-md p-6 flex gap-3">
+                    <button
+                        onClick={handleMessage}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/20 py-3.5 text-blue-300 font-semibold hover:bg-blue-500/30 hover:border-blue-500/50 hover:text-blue-200 transition-all hover:scale-105 active:scale-95"
+                    >
+                        <MessageCircle className="h-5 w-5" />
+                        Message
+                    </button>
+
+                    {isPending && (
+                        <>
+                            <button
+                                onClick={handleReject}
+                                disabled={loading}
+                                className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/20 py-3.5 text-red-300 font-semibold hover:bg-red-500/30 hover:border-red-500/50 hover:text-red-200 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            >
+                                {loading && actionType === 'reject' ? (
+                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-300 border-t-transparent" />
+                                ) : (
+                                    <XCircle className="h-5 w-5" />
+                                )}
+                                Reject
+                            </button>
+
+                            <button
+                                onClick={handleAccept}
+                                disabled={loading}
+                                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 py-3.5 text-white font-semibold hover:from-green-600 hover:to-green-700 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            >
+                                {loading && actionType === 'accept' ? (
+                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                ) : (
+                                    <CheckCircle className="h-5 w-5" />
+                                )}
+                                Accept
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}

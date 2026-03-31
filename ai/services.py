@@ -1,21 +1,22 @@
 import google.generativeai as genai
 from django.conf import settings
 from django.utils import timezone
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 import json
 import time
-from datetime import datetime
 from .models import AIRecommendation, ChatSession, ChatMessage, UserPreferenceLearning
 
 
 class GeminiAIService:
     """Service class for Gemini AI integration"""
-    
+
     def __init__(self):
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        self.model = genai.GenerativeModel('gemini-pro')
-    
-    def get_chef_recommendations(self, user_preferences, location=None, budget=None, previous_bookings=None):
+        self.model = genai.GenerativeModel("gemini-pro")
+
+    def get_chef_recommendations(
+        self, user_preferences, location=None, budget=None, previous_bookings=None
+    ):
         """Get chef recommendations based on user preferences and history"""
         prompt = f"""
         As an expert culinary matchmaker, recommend chefs based on these criteria:
@@ -41,27 +42,31 @@ class GeminiAIService:
         
         Format as JSON with chef recommendations.
         """
-        
+
         try:
             response = self.model.generate_content(prompt)
             return {
-                'success': True,
-                'recommendations': response.text,
-                'type': 'chef_recommendations',
-                'criteria_used': {
-                    'preferences': user_preferences,
-                    'location': location,
-                    'budget': budget
-                }
+                "success": True,
+                "recommendations": response.text,
+                "type": "chef_recommendations",
+                "criteria_used": {
+                    "preferences": user_preferences,
+                    "location": location,
+                    "budget": budget,
+                },
             }
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
-    def get_menu_suggestions(self, dietary_restrictions=None, cuisine_type=None, occasion=None, 
-                           guest_count=None, budget_per_person=None, season=None):
+            return {"success": False, "error": str(e)}
+
+    def get_menu_suggestions(
+        self,
+        dietary_restrictions=None,
+        cuisine_type=None,
+        occasion=None,
+        guest_count=None,
+        budget_per_person=None,
+        season=None,
+    ):
         """Get comprehensive menu suggestions"""
         prompt = f"""
         Create a detailed menu recommendation as a professional chef consultant:
@@ -85,27 +90,24 @@ class GeminiAIService:
         
         Format as a structured menu plan with detailed explanations.
         """
-        
+
         try:
             response = self.model.generate_content(prompt)
             return {
-                'success': True,
-                'suggestions': response.text,
-                'type': 'menu_suggestions',
-                'parameters': {
-                    'dietary_restrictions': dietary_restrictions,
-                    'cuisine_type': cuisine_type,
-                    'occasion': occasion,
-                    'guest_count': guest_count,
-                    'budget_per_person': budget_per_person
-                }
+                "success": True,
+                "suggestions": response.text,
+                "type": "menu_suggestions",
+                "parameters": {
+                    "dietary_restrictions": dietary_restrictions,
+                    "cuisine_type": cuisine_type,
+                    "occasion": occasion,
+                    "guest_count": guest_count,
+                    "budget_per_person": budget_per_person,
+                },
             }
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
+            return {"success": False, "error": str(e)}
+
     def analyze_chef_profile(self, chef_data):
         """Analyze chef profile and suggest improvements"""
         prompt = f"""
@@ -127,20 +129,17 @@ class GeminiAIService:
         - Service expansion
         - Marketing positioning
         """
-        
+
         try:
             response = self.model.generate_content(prompt)
             return {
-                'success': True,
-                'analysis': response.text,
-                'type': 'chef_profile_analysis'
+                "success": True,
+                "analysis": response.text,
+                "type": "chef_profile_analysis",
             }
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
+            return {"success": False, "error": str(e)}
+
     def generate_meal_plan(self, dietary_goals, duration_days, preferences):
         """Generate personalized meal plans"""
         prompt = f"""
@@ -160,21 +159,18 @@ class GeminiAIService:
         
         Make it practical, healthy, and enjoyable.
         """
-        
+
         try:
             response = self.model.generate_content(prompt)
             return {
-                'success': True,
-                'meal_plan': response.text,
-                'type': 'meal_plan',
-                'duration': duration_days
+                "success": True,
+                "meal_plan": response.text,
+                "type": "meal_plan",
+                "duration": duration_days,
             }
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
+            return {"success": False, "error": str(e)}
+
     def chat_with_ai(self, message, context=None, conversation_history=None):
         """Enhanced AI chat with context and memory"""
         system_prompt = """
@@ -208,11 +204,15 @@ class GeminiAIService:
         
         Always consider the user's context and previous conversation when responding.
         """
-        
+
         # Build conversation context
         context_info = f"Context: {context}" if context else ""
-        history_info = f"Previous conversation: {conversation_history}" if conversation_history else ""
-        
+        history_info = (
+            f"Previous conversation: {conversation_history}"
+            if conversation_history
+            else ""
+        )
+
         full_prompt = f"""
         {system_prompt}
         
@@ -222,21 +222,18 @@ class GeminiAIService:
         User: {message}
         
         ChefBot:"""
-        
+
         try:
             response = self.model.generate_content(full_prompt)
             return {
-                'success': True,
-                'response': response.text,
-                'type': 'chat_response',
-                'timestamp': timezone.now().isoformat()
+                "success": True,
+                "response": response.text,
+                "type": "chat_response",
+                "timestamp": timezone.now().isoformat(),
             }
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
+            return {"success": False, "error": str(e)}
+
     def analyze_user_preferences(self, user_data, booking_history):
         """Analyze user preferences and suggest personalized recommendations"""
         prompt = f"""
@@ -260,20 +257,17 @@ class GeminiAIService:
         - Budget optimization tips
         - New cuisine exploration suggestions
         """
-        
+
         try:
             response = self.model.generate_content(prompt)
             return {
-                'success': True,
-                'analysis': response.text,
-                'type': 'user_preference_analysis'
+                "success": True,
+                "analysis": response.text,
+                "type": "user_preference_analysis",
             }
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
+            return {"success": False, "error": str(e)}
+
     def generate_cooking_tips(self, skill_level, cuisine_type, specific_dish=None):
         """Generate personalized cooking tips and techniques"""
         prompt = f"""
@@ -294,27 +288,26 @@ class GeminiAIService:
         
         Tailor advice to the specified skill level.
         """
-        
+
         try:
             response = self.model.generate_content(prompt)
             return {
-                'success': True,
-                'tips': response.text,
-                'type': 'cooking_tips',
-                'skill_level': skill_level,
-                'cuisine_type': cuisine_type
+                "success": True,
+                "tips": response.text,
+                "type": "cooking_tips",
+                "skill_level": skill_level,
+                "cuisine_type": cuisine_type,
             }
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
-    def generate_menu_recommendations(self, user, preferences: Dict[str, Any]) -> Dict[str, Any]:
+            return {"success": False, "error": str(e)}
+
+    def generate_menu_recommendations(
+        self, user, preferences: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Generate menu recommendations based on preferences"""
-        
+
         context = self._build_user_context(user)
-        
+
         prompt = f"""
         As a culinary expert AI, recommend the best menus for this user based on their preferences:
         
@@ -336,51 +329,52 @@ class GeminiAIService:
         
         Focus on cuisine match, location proximity, price range, and user's dietary needs.
         """
-        
+
         try:
             start_time = time.time()
             response = self.model.generate_content(prompt)
             processing_time = time.time() - start_time
-            
+
             # Parse response
             result = self._parse_ai_response(response.text)
-            
+
             # Save recommendation
             recommendation = AIRecommendation.objects.create(
                 user=user,
-                recommendation_type='menu',
+                recommendation_type="menu",
                 user_preferences=preferences,
-                recommendations=result.get('recommendations', []),
+                recommendations=result.get("recommendations", []),
                 confidence_score=self._calculate_confidence_score(result),
-                reasoning=result.get('overall_reasoning', '')
+                reasoning=result.get("overall_reasoning", ""),
             )
-            
+
             return {
-                'recommendation_id': recommendation.id,
-                'recommendations': result.get('recommendations', []),
-                'reasoning': result.get('overall_reasoning', ''),
-                'confidence_score': recommendation.confidence_score,
-                'processing_time': processing_time
+                "recommendation_id": recommendation.id,
+                "recommendations": result.get("recommendations", []),
+                "reasoning": result.get("overall_reasoning", ""),
+                "confidence_score": recommendation.confidence_score,
+                "processing_time": processing_time,
             }
-            
+
         except Exception as e:
             return {
-                'error': str(e),
-                'recommendations': [],
-                'reasoning': 'Failed to generate recommendations',
-                'confidence_score': 0.0
+                "error": str(e),
+                "recommendations": [],
+                "reasoning": "Failed to generate recommendations",
+                "confidence_score": 0.0,
             }
-    
 
-    def chat_with_session(self, session: ChatSession, user_message: str) -> Dict[str, Any]:
+    def chat_with_session(
+        self, session: ChatSession, user_message: str
+    ) -> Dict[str, Any]:
         """Handle AI chat conversation with a session"""
-        
+
         # Get conversation history
         history = self._build_conversation_history(session)
-        
+
         # Build context-aware prompt
         context = self._build_session_context(session)
-        
+
         prompt = f"""
         You are ChefConnect AI, a helpful culinary assistant. 
         
@@ -392,172 +386,172 @@ class GeminiAIService:
         Provide a helpful, friendly response about cooking, chefs, food, or dining.
         Keep responses conversational and practical.
         """
-        
+
         try:
             start_time = time.time()
             response = self.model.generate_content(prompt)
             processing_time = time.time() - start_time
-            
+
             # Save user message
-            user_msg = ChatMessage.objects.create(
-                session=session,
-                sender='user',
-                content=user_message
+            ChatMessage.objects.create(
+                session=session, sender="user", content=user_message
             )
-            
+
             # Save AI response
             ai_msg = ChatMessage.objects.create(
                 session=session,
-                sender='ai',
+                sender="ai",
                 content=response.text,
-                ai_model_version='gemini-pro',
+                ai_model_version="gemini-pro",
                 processing_time=processing_time,
-                token_count=len(response.text.split())  # Rough estimate
+                token_count=len(response.text.split()),  # Rough estimate
             )
-            
+
             # Update session
             session.updated_at = ai_msg.created_at
             session.save()
-            
+
             return {
-                'response': response.text,
-                'message_id': ai_msg.id,
-                'processing_time': processing_time,
-                'session_id': session.id
+                "response": response.text,
+                "message_id": ai_msg.id,
+                "processing_time": processing_time,
+                "session_id": session.id,
             }
-            
+
         except Exception as e:
             return {
-                'error': str(e),
-                'response': 'I apologize, but I encountered an error. Please try again.',
-                'processing_time': 0
+                "error": str(e),
+                "response": "I apologize, but I encountered an error. Please try again.",
+                "processing_time": 0,
             }
-    
+
     def learn_user_preferences(self, user, interaction_data: Dict[str, Any]):
         """Learn and update user preferences from interactions"""
-        
+
         try:
             learning, created = UserPreferenceLearning.objects.get_or_create(
                 user=user,
                 defaults={
-                    'preferred_cuisines': {},
-                    'dietary_patterns': {},
-                    'booking_patterns': {},
-                    'chef_preferences': {}
-                }
+                    "preferred_cuisines": {},
+                    "dietary_patterns": {},
+                    "booking_patterns": {},
+                    "chef_preferences": {},
+                },
             )
-            
+
             # Update preferences based on interaction
-            if 'cuisine' in interaction_data:
-                cuisine = interaction_data['cuisine']
+            if "cuisine" in interaction_data:
+                cuisine = interaction_data["cuisine"]
                 current_score = learning.preferred_cuisines.get(cuisine, 0.0)
                 learning.preferred_cuisines[cuisine] = min(1.0, current_score + 0.1)
-            
-            if 'booking_feedback' in interaction_data:
-                feedback = interaction_data['booking_feedback']
+
+            if "booking_feedback" in interaction_data:
+                interaction_data["booking_feedback"]
                 # Update booking patterns based on positive/negative feedback
-                pass
-            
+
             learning.interaction_count += 1
             learning.confidence_level = min(1.0, learning.interaction_count * 0.01)
             learning.save()
-            
+
         except Exception as e:
             print(f"Error learning preferences: {e}")
-    
+
     def _build_user_context(self, user) -> str:
         """Build user context for AI prompts"""
-        context = {
-            'role': user.role,
-            'location': 'Not specified'
-        }
-        
-        if hasattr(user, 'client_profile'):
+        context = {"role": user.role, "location": "Not specified"}
+
+        if hasattr(user, "client_profile"):
             profile = user.client_profile
-            context.update({
-                'dietary_preferences': profile.dietary_preferences,
-                'allergies': profile.allergies,
-                'preferred_cuisines': profile.preferred_cuisines,
-                'location': f"{profile.city}, {profile.state}" if profile.city else 'Not specified'
-            })
-        
+            context.update(
+                {
+                    "dietary_preferences": profile.dietary_preferences,
+                    "allergies": profile.allergies,
+                    "preferred_cuisines": profile.preferred_cuisines,
+                    "location": (
+                        f"{profile.city}, {profile.state}"
+                        if profile.city
+                        else "Not specified"
+                    ),
+                }
+            )
+
         # Add learning data if available
         try:
             learning = user.preference_learning
-            context['learned_preferences'] = {
-                'cuisines': learning.preferred_cuisines,
-                'price_sensitivity': learning.price_sensitivity
+            context["learned_preferences"] = {
+                "cuisines": learning.preferred_cuisines,
+                "price_sensitivity": learning.price_sensitivity,
             }
-        except:
+        except Exception:
             pass
-        
+
         return json.dumps(context, indent=2)
-    
+
     def _build_conversation_history(self, session: ChatSession) -> str:
         """Build conversation history for context"""
-        messages = session.messages.order_by('created_at')[-10:]  # Last 10 messages
+        messages = session.messages.order_by("created_at")[-10:]  # Last 10 messages
         history = []
-        
+
         for msg in messages:
             history.append(f"{msg.sender}: {msg.content}")
-        
+
         return "\n".join(history)
-    
+
     def _build_session_context(self, session: ChatSession) -> str:
         """Build session context"""
         context = {
-            'session_type': session.session_type,
-            'context_data': session.context_data
+            "session_type": session.session_type,
+            "context_data": session.context_data,
         }
-        
+
         if session.booking_context:
-            context['booking'] = {
-                'id': session.booking_context.id,
-                'service_type': session.booking_context.service_type,
-                'status': session.booking_context.status
+            context["booking"] = {
+                "id": session.booking_context.id,
+                "service_type": session.booking_context.service_type,
+                "status": session.booking_context.status,
             }
-        
+
         if session.chef_context:
-            context['chef'] = {
-                'name': session.chef_context.user.full_name,
-                'specialties': session.chef_context.specialties
+            context["chef"] = {
+                "name": session.chef_context.user.full_name,
+                "specialties": session.chef_context.specialties,
             }
-        
+
         return json.dumps(context, indent=2)
-    
+
     def _parse_ai_response(self, response_text: str) -> Dict[str, Any]:
         """Parse AI response, handling both JSON and text"""
         try:
             # Try to extract JSON from response
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}') + 1
-            
+            start_idx = response_text.find("{")
+            end_idx = response_text.rfind("}") + 1
+
             if start_idx != -1 and end_idx != -1:
                 json_str = response_text[start_idx:end_idx]
                 return json.loads(json_str)
             else:
                 # Fallback to text response
-                return {'reasoning': response_text}
-        except:
-            return {'reasoning': response_text}
-    
+                return {"reasoning": response_text}
+        except Exception:
+            return {"reasoning": response_text}
+
     def _calculate_confidence_score(self, result: Dict[str, Any]) -> float:
         """Calculate confidence score for recommendations"""
-        if 'recommendations' in result and result['recommendations']:
+        if "recommendations" in result and result["recommendations"]:
             # Average match scores if available
             scores = []
-            for rec in result['recommendations']:
-                if 'match_score' in rec:
+            for rec in result["recommendations"]:
+                if "match_score" in rec:
                     try:
-                        scores.append(float(rec['match_score']))
-                    except:
+                        scores.append(float(rec["match_score"]))
+                    except Exception:
                         pass
-            
+
             if scores:
                 return sum(scores) / len(scores)
-        
+
         # Default confidence based on response quality
-        return 0.7 if result.get('reasoning') else 0.5
+        return 0.7 if result.get("reasoning") else 0.5
 
 
 # Singleton instance

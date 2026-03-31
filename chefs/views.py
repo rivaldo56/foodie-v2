@@ -1,17 +1,21 @@
 from rest_framework import generics, status, permissions, viewsets
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from users.permissions import IsChef, IsClient
 from .models import ChefProfile, ChefCertification, ChefReview, FavoriteChef, ChefEvent
 from .serializers import (
-    ChefProfileSerializer, ChefCertificationSerializer, ChefReviewSerializer,
-    FavoriteChefSerializer, ChefEventSerializer, ChefOnboardingSerializer
+    ChefProfileSerializer,
+    ChefCertificationSerializer,
+    ChefReviewSerializer,
+    FavoriteChefSerializer,
+    ChefEventSerializer,
+    ChefOnboardingSerializer,
 )
 
 
 class ChefListView(generics.ListAPIView):
     """List all chefs"""
+
     queryset = ChefProfile.objects.all()
     serializer_class = ChefProfileSerializer
     permission_classes = [permissions.AllowAny]
@@ -19,9 +23,10 @@ class ChefListView(generics.ListAPIView):
 
 class ChefSearchView(generics.ListAPIView):
     """Search chefs with filters"""
+
     serializer_class = ChefProfileSerializer
     permission_classes = [permissions.AllowAny]
-    
+
     def get_queryset(self):
         # TODO: Implement search logic
         return ChefProfile.objects.all()
@@ -29,6 +34,7 @@ class ChefSearchView(generics.ListAPIView):
 
 class ChefDetailView(generics.RetrieveAPIView):
     """Chef detail view"""
+
     queryset = ChefProfile.objects.all()
     serializer_class = ChefProfileSerializer
     permission_classes = [permissions.AllowAny]
@@ -39,35 +45,37 @@ class ChefProfileView(generics.RetrieveUpdateAPIView):
     Chef profile management.
     Allows chefs to view and update their profile details.
     """
+
     serializer_class = ChefProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsChef]
-    
+
     def get_object(self):
         profile, created = ChefProfile.objects.get_or_create(user=self.request.user)
         return profile
-    
+
     def update(self, request, *args, **kwargs):
         import logging
+
         logger = logging.getLogger(__name__)
-        
-        partial = kwargs.pop('partial', False)
+
+        kwargs.pop("partial", False)
         instance = self.get_object()
-        
+
         logger.info(f"Received update request for chef {instance.id}")
-        
+
         # Handle profile_picture update on User model
-        if 'profile_picture' in request.data:
+        if "profile_picture" in request.data:
             user = request.user
-            profile_picture_url = request.data.get('profile_picture')
+            profile_picture_url = request.data.get("profile_picture")
             user.profile_picture = profile_picture_url
             user.save()
             logger.info(f"Updated user profile_picture for user {user.id}")
-        
+
         # Handle bio update on ChefProfile
-        if 'bio' in request.data:
-            instance.bio = request.data.get('bio')
+        if "bio" in request.data:
+            instance.bio = request.data.get("bio")
             instance.save()
-        
+
         # Return updated serializer data
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
@@ -75,22 +83,33 @@ class ChefProfileView(generics.RetrieveUpdateAPIView):
 
 class ChefReviewListView(generics.ListAPIView):
     """List chef reviews"""
+
     serializer_class = ChefReviewSerializer
     permission_classes = [permissions.AllowAny]
-    
+
     def get_queryset(self):
-        chef_id = self.kwargs['chef_id']
+        chef_id = self.kwargs["chef_id"]
         return ChefReview.objects.filter(chef_id=chef_id)
 
 
 class ChefReviewCreateView(generics.CreateAPIView):
     """Create chef review"""
+
     serializer_class = ChefReviewSerializer
     permission_classes = [permissions.IsAuthenticated, IsClient]
+
+    def perform_create(self, serializer):
+        from bookings.models import Booking
+
+        booking_id = self.request.data.get("booking")
+        booking = get_object_or_404(Booking, id=booking_id)
+
+        serializer.save(client=self.request.user, chef=booking.chef)
 
 
 class ChefReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Chef review detail"""
+
     queryset = ChefReview.objects.all()
     serializer_class = ChefReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -98,87 +117,93 @@ class ChefReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ChefCertificationListView(generics.ListAPIView):
     """List chef certifications"""
+
     serializer_class = ChefCertificationSerializer
     permission_classes = [permissions.IsAuthenticated, IsChef]
-    
+
     def get_queryset(self):
         return ChefCertification.objects.filter(chef__user=self.request.user)
 
 
 class ChefCertificationCreateView(generics.CreateAPIView):
     """Create chef certification"""
+
     serializer_class = ChefCertificationSerializer
     permission_classes = [permissions.IsAuthenticated, IsChef]
 
 
 class ChefCertificationDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Chef certification detail"""
+
     serializer_class = ChefCertificationSerializer
     permission_classes = [permissions.IsAuthenticated, IsChef]
-    
+
     def get_queryset(self):
         return ChefCertification.objects.filter(chef__user=self.request.user)
 
 
-
-
 class FavoriteChefToggleView(generics.GenericAPIView):
     """Toggle favorite status for a chef"""
+
     permission_classes = [permissions.IsAuthenticated, IsClient]
-    
+
     def post(self, request, chef_id):
         chef = get_object_or_404(ChefProfile, id=chef_id)
-        
-        favorite, created = FavoriteChef.objects.get_or_create(user=request.user, chef=chef)
-        
+
+        favorite, created = FavoriteChef.objects.get_or_create(
+            user=request.user, chef=chef
+        )
+
         if not created:
             favorite.delete()
-            return Response({'status': 'removed', 'is_favorited': False})
-            
-        return Response({'status': 'added', 'is_favorited': True})
+            return Response({"status": "removed", "is_favorited": False})
+
+        return Response({"status": "added", "is_favorited": True})
 
 
 class FavoriteChefListView(generics.ListAPIView):
     """List user's favorite chefs"""
+
     permission_classes = [permissions.IsAuthenticated, IsClient]
     serializer_class = FavoriteChefSerializer
-        
+
     def get_queryset(self):
         return FavoriteChef.objects.filter(user=self.request.user)
 
 
 class ChefAnalyticsView(generics.GenericAPIView):
     """Get chef dashboard analytics"""
+
     permission_classes = [permissions.IsAuthenticated, IsChef]
-    
+
     def get(self, request):
         # Get chef profile for authenticated user
         try:
             chef_profile = ChefProfile.objects.get(user=request.user)
         except ChefProfile.DoesNotExist:
             return Response(
-                {'error': 'Chef profile not found'},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Chef profile not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Import analytics module
         from .analytics import ChefAnalytics
-        
+
         # Get analytics data
         analytics = ChefAnalytics(chef_profile)
         data = analytics.get_dashboard_data()
-        
+
         return Response(data, status=status.HTTP_200_OK)
 
 
 class ChefEventViewSet(viewsets.ModelViewSet):
     """Manage chef personal events"""
+
     serializer_class = ChefEventSerializer
     permission_classes = [permissions.IsAuthenticated, IsChef]
-    
+
     def get_queryset(self):
         return ChefEvent.objects.filter(chef__user=self.request.user)
-    
+
     def perform_create(self, serializer):
         chef_profile = ChefProfile.objects.get(user=self.request.user)
         serializer.save(chef=chef_profile)
@@ -187,19 +212,113 @@ class ChefEventViewSet(viewsets.ModelViewSet):
 class ChefOnboardingView(generics.RetrieveUpdateAPIView):
     """
     Retrieve or update chef onboarding data.
+    On update, also parses the rich availability JSON to extract city/state/radius
+    and writes them directly to the chef's ChefProfile.
     """
+
     permission_classes = [permissions.IsAuthenticated, IsChef]
     serializer_class = ChefOnboardingSerializer
 
     def get_object(self):
         from .models import ChefOnboarding
+
         obj, created = ChefOnboarding.objects.get_or_create(user=self.request.user)
         return obj
 
     def perform_update(self, serializer):
+        import json as _json
         from users.models import User
+
+        user = self.request.user
+
         # Set status to in_progress if currently not_started
-        if self.request.user.onboarding_status == User.OnboardingStatus.NOT_STARTED:
-            self.request.user.onboarding_status = User.OnboardingStatus.IN_PROGRESS
-            self.request.user.save()
-        serializer.save()
+        if user.onboarding_status == User.OnboardingStatus.NOT_STARTED:
+            user.onboarding_status = User.OnboardingStatus.IN_PROGRESS
+            user.save()
+
+        instance = serializer.save()
+
+        # Immediately sync location fields from availability JSON to ChefProfile
+        # so city/state/radius are always up to date as the chef steps through onboarding
+        for slot in instance.availability_options or []:
+            try:
+                avail = _json.loads(slot)
+                if isinstance(avail, dict) and avail.get("city"):
+                    try:
+                        profile = ChefProfile.objects.get(user=user)
+                        if avail.get("city"):
+                            profile.city = avail["city"]
+                        if avail.get("state"):
+                            profile.state = avail["state"]
+                        if avail.get("travelDistance"):
+                            profile.service_radius = max(
+                                1, min(100, int(avail["travelDistance"]))
+                            )
+                        if avail.get("lat"):
+                            profile.latitude = avail["lat"]
+                        if avail.get("lng"):
+                            profile.longitude = avail["lng"]
+                        profile.save(
+                            update_fields=[
+                                "city",
+                                "state",
+                                "service_radius",
+                                "latitude",
+                                "longitude",
+                            ]
+                        )
+                    except ChefProfile.DoesNotExist:
+                        pass
+                    break
+            except (ValueError, TypeError):
+                continue
+
+
+class MediaUploadView(generics.GenericAPIView):
+    """
+    Upload a single file (image or document) during chef onboarding.
+    Returns the server-side URL for the uploaded file.
+    Accepts multipart/form-data with a 'file' field.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [
+        __import__(
+            "rest_framework.parsers", fromlist=["MultiPartParser"]
+        ).MultiPartParser
+    ]
+
+    def post(self, request):
+        import os
+        from django.conf import settings
+        from django.core.files.storage import default_storage
+        from django.core.files.base import ContentFile
+
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            return Response(
+                {"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate size: max 10 MB
+        if uploaded_file.size > 10 * 1024 * 1024:
+            return Response(
+                {"error": "File too large (max 10 MB)"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Determine sub-folder from optional 'type' param: 'portfolio' or 'certifications'
+        upload_type = request.data.get("type", "uploads")
+        folder = "portfolio" if upload_type == "portfolio" else "certifications"
+
+        # Build a safe filename with user id prefix
+        os.path.splitext(uploaded_file.name)[1].lower()
+        safe_name = f"{folder}/{request.user.id}_{uploaded_file.name.replace(' ', '_')}"
+        file_path = default_storage.save(safe_name, ContentFile(uploaded_file.read()))
+
+        # Build the absolute URL
+        media_url = request.build_absolute_uri(settings.MEDIA_URL + file_path)
+
+        return Response(
+            {"url": media_url, "path": file_path}, status=status.HTTP_201_CREATED
+        )

@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -13,13 +14,13 @@ import {
 import MessageList from '@/components/chat/MessageList';
 import { MessageCircle, Send, Search, ArrowLeft, MoreVertical, Phone, Video } from 'lucide-react';
 
-export default function ClientMessagesPage() {
+function ClientMessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
@@ -30,7 +31,7 @@ export default function ClientMessagesPage() {
   useEffect(() => {
     const conversationIdParam = searchParams.get('conversationId');
     if (conversationIdParam) {
-      setActiveConversationId(Number(conversationIdParam));
+      setActiveConversationId(conversationIdParam);
     }
   }, [searchParams]);
 
@@ -128,7 +129,7 @@ export default function ClientMessagesPage() {
     }
   };
 
-  const handleSelectConversation = (id: number) => {
+  const handleSelectConversation = (id: string | number) => {
     setActiveConversationId(id);
     router.push(`/client/messages?conversationId=${id}`);
   };
@@ -287,5 +288,19 @@ export default function ClientMessagesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+
+
+export default function ClientMessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0f0c0a]">
+        <div className="text-white/50">Loading messages...</div>
+      </div>
+    }>
+      <ClientMessagesContent />
+    </Suspense>
   );
 }

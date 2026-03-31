@@ -1,8 +1,15 @@
+'use client';
+
 import Link from 'next/link';
 import { useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+  const isOnboarding = pathname?.includes('/onboarding');
   const currentYear = useMemo(() => new Date().getFullYear(), []);
+
+  if (isOnboarding) return null;
 
   return (
     <footer className="border-t border-white/10 bg-black/40 backdrop-blur mt-auto">
@@ -17,7 +24,6 @@ export default function Footer() {
             <li><Link href="/about" className="hover:text-accent transition-colors">Our Story</Link></li>
             <li><Link href="/chefs" className="hover:text-accent transition-colors">Meet the Chefs</Link></li>
             <li><Link href="/careers" className="hover:text-accent transition-colors">Careers</Link></li>
-            <li><Link href="/business" className="hover:text-accent transition-colors">Foodie for Business</Link></li>
           </ul>
         </div>
         <div>
@@ -25,7 +31,7 @@ export default function Footer() {
           <ul className="space-y-3">
             <li><a href="mailto:hello@foodie.ke" className="hover:text-accent transition-colors">hello@foodie.ke</a></li>
             <li><Link href="/support" className="hover:text-accent transition-colors">Support</Link></li>
-            <li><Link href="/faq" className="hover:text-accent transition-colors">FAQs</Link></li>
+            <li><Link href="/press" className="hover:text-accent transition-colors">Press</Link></li>
           </ul>
         </div>
         <div>

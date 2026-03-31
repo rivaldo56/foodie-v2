@@ -1,253 +1,150 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { startTransition } from 'react';
-import { authService, User, LoginCredentials, RegisterData } from '@/services/auth.service';
-import { useToast } from '@/contexts/ToastContext';
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  loading: boolean;
-  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
-  register: (data: RegisterData) => Promise<{
-    success: boolean;
-    error?: string;
-    fieldErrors?: Record<string, string[]>;
-  }>;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import api from '@/lib/api';
+import type { User, AuthContextType } from '@/types/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_COOKIE_NAME = 'token';
-const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
-
-const setTokenCookie = (value: string | null) => {
-  if (typeof document === 'undefined') return;
-
-  if (!value) {
-    document.cookie = `${TOKEN_COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax`;
-    return;
-  }
-
-  document.cookie = `${TOKEN_COOKIE_NAME}=${value}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
-};
-
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hydrated, setHydrated] = useState(false);
   const router = useRouter();
-  const { showToast } = useToast();
+  const pathname = usePathname();
 
-  const clearAuthState = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setTokenCookie(null);
-    document.cookie = `user_role=; path=/; max-age=0; SameSite=Lax`;
-    setToken(null);
-    setUser(null);
-  };
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const loadUser = () => {
-      if (typeof window === 'undefined') return;
-
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        setTokenCookie(storedToken);
-      } else {
-        setLoading(false);
-        setTokenCookie(null);
+  const fetchUser = useCallback(async () => {
+    try {
+      // Check if we have an access token OR if we are in environment that uses cookies
+      // This is just a hint to avoid unnecessary 401s if we definitely aren't logged in
+      const hasToken = typeof window !== 'undefined' && localStorage.getItem('access_token');
+      
+      // If we don't have a token, we might still have a cookie, so we still fetch,
+      // but we do it silently if possible.
+      const response = await api.get('/users/profile/');
+      if (response.data) {
+        setUser(response.data);
       }
-
-      setHydrated(true);
-    };
-
-    loadUser();
+    } catch (error: any) {
+      // If it's a 401, we are definitely NOT logged in
+      if (error.response?.status === 401) {
+        setUser(null);
+      }
+      // Otherwise, keep the current state (maybe it's a network error)
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
-
-    if (!token) {
+    // Only run if we aren't already loading and don't have a user
+    if (!user) {
+      fetchUser();
+    } else {
       setLoading(false);
-      return;
     }
+  }, [fetchUser, user]);
 
-    let cancelled = false;
 
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        const response = await authService.getCurrentUser();
-
-        if (cancelled) return;
-
-        if (response.data) {
-          setUser(response.data);
-          localStorage.setItem('user', JSON.stringify(response.data));
-          return;
-        }
-
-        if (response.status === 401) {
-          console.warn('[Foodie] Auth token invalid, clearing session');
-          clearAuthState();
-          return;
-        }
-
-        if (response.error) {
-          console.error('[Foodie] Failed to refresh profile:', response.error);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error('[Foodie] Unexpected error fetching profile:', error);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token, hydrated]);
-
-  const login = async (credentials: LoginCredentials) => {
+  const login = async ({ email, password }: { email: string; password: string }) => {
     try {
-      const { token: newToken, user: newUser } = await authService.login(credentials);
-
-      setToken(newToken);
-      setUser(newUser);
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(newUser));
-      setTokenCookie(newToken);
-      document.cookie = `user_role=${newUser.role}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
-      console.log('[Foodie] Login success');
-      showToast('Welcome back!', 'success');
-
-      // Use startTransition to handle the redirect
-      startTransition(() => {
-        if (newUser.onboarding_status !== 'complete') {
-          if (newUser.role === 'chef') {
-            router.push('/chef-onboarding');
-          } else {
-            // Default to client onboarding for others for now, or check specific roles
-            router.push('/onboarding');
-          }
+      setLoading(true);
+      const response = await api.post('/users/login/', { email, password });
+      
+      if (response.data && response.data.user) {
+        const user = response.data.user;
+        setUser(user);
+        
+        // Handle redirects based on onboarding and role
+        if (user.onboarding_status === 'not_started' || !user.onboarding_status) {
+          router.push('/onboarding');
+        } else if (user.role === 'admin') {
+          router.push('/admin');
+        } else if (user.role === 'chef') {
+          router.push('/chef/dashboard');
         } else {
-          if (newUser.role === 'chef') {
-            router.push('/chef/dashboard');
-          } else if (newUser.role === 'farmer' || newUser.role === 'business') {
-            router.push('/farmer/dashboard');
-          } else {
-            router.push('/client/home');
-          }
+          router.push('/client/home');
         }
-      });
-
-      return { success: true };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Network error';
-      console.error('[Foodie] Login failed:', message);
-      showToast(message || 'Login failed', 'error');
-      return { success: false, error: message };
-    }
-  };
-
-  const register = async (data: RegisterData) => {
-    try {
-      const response = await authService.register(data);
-
-      if (response.data) {
-        const { token: newToken, user: newUser } = response.data;
-        setToken(newToken);
-        setUser(newUser);
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('user', JSON.stringify(newUser));
-        setTokenCookie(newToken);
-        document.cookie = `user_role=${newUser.role}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
-        showToast('Account created! Karibu.', 'success');
-        startTransition(() => {
-          if (newUser.onboarding_status !== 'complete') {
-            if (newUser.role === 'chef') {
-              router.replace('/chef-onboarding');
-            } else {
-              router.replace('/onboarding');
-            }
-          } else {
-            if (newUser.role === 'chef') {
-              router.replace('/chef/dashboard');
-            } else if (newUser.role === 'farmer' || newUser.role === 'business') {
-              router.replace('/farmer/dashboard');
-            } else {
-              router.replace('/client/home');
-            }
-          }
-        });
         return { success: true };
       }
-
-      if (response.error) {
-        console.error('[Foodie] Registration API error:', response.error);
-        showToast(response.error, 'error');
-      }
-
-      return {
-        success: false,
-        error: response.error || 'Registration failed',
-        fieldErrors: response.errors,
-      };
-    } catch (error) {
-      console.error('[Foodie] Registration request failed:', error);
-      const message = error instanceof Error ? error.message : 'Network error';
-      showToast(message || 'Registration failed', 'error');
+      return { success: false, error: 'Login failed' };
+    } catch (error: any) {
+      console.error('[Foodie] Login failed full error:', error.response?.data);
+      const data = error.response?.data;
+      const message = data?.detail 
+        || (data && typeof data === 'object' ? Object.values(data).flat().join(' ') : null)
+        || error.message;
       return { success: false, error: message };
+    } finally {
+      setLoading(false);
     }
   };
 
-  const logout = () => {
-    authService.logout();
-    clearAuthState();
-    startTransition(() => {
-      router.replace('/auth');
-    });
+  const register = async (data: any) => {
+    try {
+      setLoading(true);
+      // Split full_name into first and last name for Django
+      const nameParts = (data.full_name || '').trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      const payload = {
+        email: data.email,
+        username: data.username,
+        first_name: firstName,
+        last_name: lastName,
+        password: data.password,
+        password_confirm: data.password2 || data.password,
+        role: data.role,
+      };
+
+      const response = await api.post('/users/register/', payload);
+      
+      if (response.data && response.data.user) {
+        setUser(response.data.user);
+        // After registration, always go to onboarding
+        router.push('/onboarding');
+        return { success: true };
+      }
+      return { success: false, error: 'Registration failed' };
+    } catch (error: any) {
+      console.error('[Foodie] Registration failed full error:', error.response?.data);
+      const errorMessage = error.response?.data 
+        ? Object.values(error.response.data).flat().join(' ') 
+        : error.message;
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!hydrated) {
-    return null;
-  }
+  const logout = async () => {
+    try {
+      setLoading(true);
+      await api.post('/users/logout/');
+    } catch (error) {
+      console.error('[Foodie] Logout error:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      setLoading(false);
+      router.push('/login');
+    }
+  };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        login,
-        register,
-        logout,
-        isAuthenticated: !!user && !!token,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
+    refreshUser: fetchUser,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

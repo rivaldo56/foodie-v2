@@ -179,7 +179,7 @@ export default function MenuManagement() {
                     </td>
                     <td className="px-6 py-4">
                        <span className="px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 text-[10px] font-bold rounded uppercase tracking-widest">
-                          {item.category.replace('_', ' ')}
+                          {(item.category || '').replace('_', ' ')}
                        </span>
                     </td>
                     <td className="px-6 py-4 font-bold text-neutral-900 dark:text-white text-sm">

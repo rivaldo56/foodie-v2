@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -31,7 +32,7 @@ const DISH_CATEGORIES = [
 
 type TabType = 'chefs' | 'dishes';
 
-export default function ClientDiscoverPage() {
+function ClientDiscoverContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, loading } = useAuth();
@@ -170,7 +171,7 @@ export default function ClientDiscoverPage() {
           filtered = filtered.filter(chef => (chef.average_rating || 0) >= 4.5);
           break;
         case 'new':
-          filtered = filtered.sort((a, b) => a.id - b.id).slice(0, 10);
+          filtered = filtered.sort((a, b) => String(a.id).localeCompare(String(b.id))).slice(0, 10);
           break;
         case 'special':
           filtered = filtered.filter(chef => chef.is_verified);
@@ -211,7 +212,7 @@ export default function ClientDiscoverPage() {
 
     // Apply chef filter
     if (selectedChef) {
-      filtered = filtered.filter(item => item.chef === selectedChef);
+      filtered = filtered.filter(item => (item.chef || Number(item.chef_id)) === selectedChef);
     }
 
     // Apply price range filter
@@ -510,5 +511,19 @@ export default function ClientDiscoverPage() {
         />
       )}
     </div>
+  );
+}
+
+
+
+export default function ClientDiscoverPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+      </div>
+    }>
+      <ClientDiscoverContent />
+    </Suspense>
   );
 }
