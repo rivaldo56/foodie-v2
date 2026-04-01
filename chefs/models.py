@@ -182,6 +182,12 @@ class ChefReview(models.Model):
     punctuality = models.PositiveIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)], null=True, blank=True
     )
+    platform_rating = models.PositiveIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)], 
+        null=True, 
+        blank=True,
+        help_text=_("How would you rate the Foodie platform experience?")
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

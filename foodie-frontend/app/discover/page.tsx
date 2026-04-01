@@ -72,7 +72,9 @@ export default function DiscoverPage() {
   }, []);
 
   const filteredMeals = useMemo(() => {
-    let list = [...meals];
+    // Defense: Ensure meals is always an array
+    let list = Array.isArray(meals) ? [...meals] : [];
+
 
     if (selectedCategory !== 'all') {
       const category = selectedCategory.toLowerCase();
@@ -165,9 +167,10 @@ export default function DiscoverPage() {
         <section className="space-y-6">
           <div className="flex items-center justify-between text-sm text-muted">
             <p>
-              Showing <span className="text-white font-semibold">{filteredMeals.length}</span> of{' '}
-              <span className="text-white font-semibold">{meals.length}</span> results
+              Showing <span className="text-white font-semibold">{filteredMeals?.length || 0}</span> of{' '}
+              <span className="text-white font-semibold">{meals?.length || 0}</span> results
             </p>
+
           </div>
 
           {loading ? (

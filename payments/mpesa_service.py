@@ -209,19 +209,26 @@ class MpesaPaymentService:
                         "message": "Pending payment already exists. Please check your phone.",
                     }
 
-            # Calculate total amount
-            if booking.is_priority and booking.down_payment_amount > 0:
-                # Priority booking: Pay down payment only
-                subtotal = booking.down_payment_amount
-                transaction_desc = f"Down payment for booking {booking.id}"
+            # Calculate payout amounts based on payment mode
+            if booking.payment_mode == "deposit_only":
+                # Deposit Flow (PRD: 40% deposit)
+                subtotal = booking.total_amount * Decimal("0.40")
+                transaction_desc = f"40% Deposit for booking {booking.id}"
+                # The 40% is the total charge. Within it:
+                # 5% is platform fee, 35% is chef portion (held by platform)
+                platform_fee = booking.total_amount * Decimal("0.05")
             else:
-                # Regular booking: Pay full amount + fee
-                subtotal = booking.total_amount
-                transaction_desc = f"Payment for booking {booking.id}"
+                # Regular Full Escrow
+                if booking.is_priority and booking.down_payment_amount > 0:
+                    subtotal = booking.down_payment_amount
+                    transaction_desc = f"Down payment for booking {booking.id}"
+                else:
+                    subtotal = booking.total_amount
+                    transaction_desc = f"Payment for booking {booking.id}"
+                platform_fee = subtotal * Decimal("0.05")
 
-            platform_fee = subtotal * Decimal("0.05")  # 5% platform fee
-            total_amount = subtotal + platform_fee
-
+            total_amount = subtotal + platform_fee if booking.payment_mode != "deposit_only" else subtotal
+            
             # Create account reference
             account_reference = f"BOOKING-{booking.id}"
 
@@ -242,6 +249,7 @@ class MpesaPaymentService:
                     platform_fee=platform_fee,
                     payment_method="mpesa",
                     status="pending",
+                    payment_type="deposit" if booking.payment_mode == "deposit_only" else "full_payment"
                 )
 
                 # Create M-Pesa specific record
@@ -296,7 +304,10 @@ class MpesaPaymentService:
                     payment.save()
 
                     # Update booking
-                    payment.booking.status = "confirmed"
+                    if payment.booking.payment_mode == "deposit_only":
+                        payment.booking.status = "deposit_paid"
+                    else:
+                        payment.booking.status = "confirmed"
                     payment.booking.save()
 
                     return {
@@ -412,7 +423,10 @@ class MpesaPaymentService:
                 payment.save()
 
                 # Update booking
-                payment.booking.status = "confirmed"
+                if payment.booking.payment_mode == "deposit_only":
+                    payment.booking.status = "deposit_paid"
+                else:
+                    payment.booking.status = "confirmed"
                 payment.booking.save()
 
                 logger.info(f"M-Pesa payment {mpesa_payment.id} completed successfully")

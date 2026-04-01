@@ -25,6 +25,10 @@ class Payment(models.Model):
         BANK_TRANSFER = "bank_transfer", _("Bank Transfer")
         CASH = "cash", _("Cash")
 
+    class PaymentType(models.TextChoices):
+        FULL_PAYMENT = "full_payment", _("Full Payment")
+        DEPOSIT = "deposit", _("Deposit")
+
     booking = models.ForeignKey(
         Booking, on_delete=models.CASCADE, related_name="payments"
     )
@@ -42,6 +46,9 @@ class Payment(models.Model):
     )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.PENDING
+    )
+    payment_type = models.CharField(
+        max_length=20, choices=PaymentType.choices, default=PaymentType.FULL_PAYMENT
     )
 
     # External payment provider details

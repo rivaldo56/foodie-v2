@@ -23,6 +23,7 @@ export interface Chef {
     location?: string;
     hourly_rate?: number;
     badge?: 'new' | 'rising' | 'michelin';
+    service_radius?: number;
 }
 
 export interface ChefReview {

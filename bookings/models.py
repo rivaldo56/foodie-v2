@@ -18,6 +18,7 @@ class Booking(models.Model):
             "Pending Chef Acceptance"
         )
         CONFIRMED = "confirmed", _("Confirmed")
+        DEPOSIT_PAID = "deposit_paid", _("Deposit Paid")
         IN_PROGRESS = "in_progress", _("In Progress")
         COMPLETED = "completed", _("Completed")
         CANCELLED = "cancelled", _("Cancelled")
@@ -66,6 +67,26 @@ class Booking(models.Model):
     )
     down_payment_amount = models.DecimalField(
         max_digits=10, decimal_places=2, default=0.00
+    )
+
+    # Payment Mode & Deposit Only Flow
+    class PaymentMode(models.TextChoices):
+        FULL_ESCROW = "full_escrow", _("Full Escrow")
+        DEPOSIT_ONLY = "deposit_only", _("Deposit Only")
+
+    class ExternalPaymentStatus(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        PAID = "paid", _("Paid")
+        NOT_REQUIRED = "not_required", _("Not Required")
+
+    payment_mode = models.CharField(
+        max_length=20, choices=PaymentMode.choices, default=PaymentMode.FULL_ESCROW
+    )
+    deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    external_payment_status = models.CharField(
+        max_length=20,
+        choices=ExternalPaymentStatus.choices,
+        default=ExternalPaymentStatus.NOT_REQUIRED,
     )
 
     # Status and tracking

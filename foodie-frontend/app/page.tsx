@@ -56,7 +56,7 @@ const TESTIMONIALS = [
 ];
 
 export default function Home() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
 
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const { items, loading } = useDiscoveryFeed();
@@ -106,9 +106,13 @@ export default function Home() {
               <Users className="h-4 w-4 group-hover:scale-110 transition-transform" />
               Join as a Chef
             </Link>
-            <Link href={getDashboardLink()} className="text-sm font-medium text-white/70 hover:text-white transition-colors">
-              {isAuthenticated ? 'My Dashboard' : 'Sign In'}
-            </Link>
+            {authLoading ? (
+              <div className="h-8 w-24 rounded-full bg-white/10 animate-pulse" />
+            ) : (
+              <Link href={getDashboardLink()} className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+                {isAuthenticated ? 'My Dashboard' : 'Sign In'}
+              </Link>
+            )}
 
           </div>
         </nav>
@@ -127,16 +131,20 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                <Link
-                  href={getDashboardLink()}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-8 py-4 text-base sm:text-lg font-semibold text-white shadow-glow transition hover:bg-accent-strong active:scale-[0.98]"
-                >
-                  {!isAuthenticated 
-                    ? "Get Started" 
-                    : (user?.onboarding_status === 'complete' ? "Go to Dashboard" : "Resume Onboarding")
-                  }
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
+                {authLoading ? (
+                  <div className="h-14 w-48 rounded-full bg-white/15 animate-pulse" />
+                ) : (
+                  <Link
+                    href={getDashboardLink()}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-8 py-4 text-base sm:text-lg font-semibold text-white shadow-glow transition hover:bg-accent-strong active:scale-[0.98]"
+                  >
+                    {!isAuthenticated 
+                      ? "Get Started" 
+                      : (user?.onboarding_status === 'complete' ? "Go to Dashboard" : "Resume Onboarding")
+                    }
+                    <ArrowRight className="h-5 w-5" />
+                  </Link>
+                )}
 
                 <Link
                   href="/discover"

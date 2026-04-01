@@ -5,9 +5,6 @@ TikTok-style personalized feed endpoints
 
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.conf import settings
 from .recommendation_engine import RecommendationEngine, TrendingCalculator
 from .models import UserInteraction
 from chefs.serializers import ChefProfileSerializer
@@ -71,7 +68,6 @@ class TrendingFeedView(generics.GenericAPIView):
 
     permission_classes = [permissions.AllowAny]
 
-    @method_decorator(cache_page(settings.CACHE_TTL_SHORT))
     def get(self, request):
         content_type = request.query_params.get("type", "chef")
         limit = int(request.query_params.get("limit", 10))

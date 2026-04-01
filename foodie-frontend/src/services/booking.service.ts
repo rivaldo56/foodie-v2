@@ -64,6 +64,8 @@ export interface Booking {
     cancelled_at?: string;
     is_priority?: boolean;
     down_payment_amount?: number;
+    payment_mode?: 'full_escrow' | 'deposit_only';
+    external_payment_status?: string;
     payment_status?: string;
 }
 
@@ -83,6 +85,7 @@ export interface CreateBookingPayload {
     menuItems?: Array<{ menu_item_id: string | number; quantity: number; special_instructions?: string }>;
     isPriority?: boolean;
     downPaymentAmount?: number;
+    paymentMode?: 'full_escrow' | 'deposit_only';
 }
 
 function toApiPayload(payload: CreateBookingPayload) {
@@ -104,6 +107,7 @@ function toApiPayload(payload: CreateBookingPayload) {
         menu_items: payload.menuItems || [],
         is_priority: payload.isPriority || false,
         down_payment_amount: payload.downPaymentAmount || 0,
+        payment_mode: payload.paymentMode || 'full_escrow',
     };
 }
 
@@ -114,9 +118,9 @@ export const bookingService = {
         if (params?.search) queryParams.append('search', params.search);
 
         const queryString = queryParams.toString();
-        const endpoint = queryString ? `/meals/?${queryString}` : '/meals/';
+        const endpoint = queryString ? `/experiences/meals/?${queryString}` : '/experiences/meals/';
+        return apiRequest({ url: endpoint, method: 'GET' });
 
-        return apiRequest({ url: endpoint });
     },
 
     async getDiscoverFeed(params?: { search?: string; limit?: number }): Promise<ApiResponse<Meal[]>> {
@@ -124,12 +128,14 @@ export const bookingService = {
         if (params?.search) query.append('search', params.search);
         if (params?.limit) query.append('limit', String(params.limit));
 
-        const endpoint = query.toString() ? `/meals/?${query.toString()}` : '/meals/';
-        return apiRequest({ url: endpoint });
+        const endpoint = query.toString() ? `/experiences/meals/?${query.toString()}` : '/experiences/meals/';
+        return apiRequest({ url: endpoint, method: 'GET' });
+
     },
 
     async getMealById(id: string | number): Promise<ApiResponse<Meal>> {
-        return apiRequest({ url: `/meals/${id}/` });
+        return apiRequest({ url: `/experiences/meals/${id}/`, method: 'GET' });
+
     },
 
     async getChefMeals(chefId: string | number): Promise<ApiResponse<Meal[]>> {

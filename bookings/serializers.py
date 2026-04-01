@@ -160,9 +160,6 @@ class BookingSerializer(serializers.ModelSerializer):
         source="total_amount", max_digits=10, decimal_places=2, read_only=True
     )
     address = serializers.CharField(source="service_address", read_only=True)
-    deposit_amount = serializers.DecimalField(
-        source="down_payment_amount", max_digits=10, decimal_places=2, read_only=True
-    )
     payment_model = serializers.SerializerMethodField()
     menu = serializers.SerializerMethodField()
 
@@ -212,6 +209,8 @@ class BookingSerializer(serializers.ModelSerializer):
             "is_priority",
             "down_payment_amount",
             "deposit_amount",
+            "payment_mode",
+            "external_payment_status",
             "status",
             "confirmation_code",
             "client_notes",
@@ -283,6 +282,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             "menu_items",
             "is_priority",
             "down_payment_amount",
+            "payment_mode",
         ]
 
     def validate_booking_date(self, value):
@@ -440,7 +440,8 @@ class BookingStatusUpdateSerializer(serializers.ModelSerializer):
 
         # Define allowed status transitions
         allowed_transitions = {
-            "pending": ["confirmed", "cancelled"],
+            "pending": ["confirmed", "deposit_paid", "cancelled"],
+            "deposit_paid": ["confirmed", "cancelled"],
             "confirmed": ["in_progress", "cancelled"],
             "in_progress": ["completed", "cancelled"],
         }

@@ -108,10 +108,11 @@ export default function OnboardingPage() {
         const payload: ClientOnboardingData = {
             occasion_types: newData.motivation,
             preferred_cuisines: newData.tastes,
-            allergies: newData.allergies, // Details lost?
+            allergies: newData.allergies,
+            allergies_details: newData.allergiesDetails,
             budget_range: newData.budget,
             location: newData.location,
-            dining_frequency: newData.partySize, // Reusing field or adding new? ClientOnboarding has dining_frequency
+            dining_frequency: newData.partySize,
             dietary_preferences: newData.vibes
         };
 

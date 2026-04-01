@@ -9,8 +9,8 @@ import { getPersonalizedFeed } from '@/lib/api/recommendations';
 import type { ChefRecommendation } from '@/lib/api/recommendations';
 import ChefCard from '@/components/ChefCard';
 import { Search, Sparkles, Loader2, ArrowRight } from 'lucide-react';
-import RecipeFeed from '@/components/recipes/RecipeFeed';
 import { usePublishedExperiences } from '@/hooks/usePublishedExperiences';
+
 import { useFeaturedExperiences } from '@/hooks/useFeaturedExperiences';
 import { useExploreMenus } from '@/hooks/useExploreMenus';
 import { useFeaturedMenus } from '@/hooks/useFeaturedMenus';
@@ -215,18 +215,8 @@ export default function ClientHomePage() {
         </div>
       </section>
 
-      {/* Recipe Inspiration Feed - Preserved */}
-      <section className="space-y-6">
-          <div className="flex items-center gap-2 px-1">
-             <Sparkles className="h-6 w-6 text-accent" />
-             <h2 className="text-2xl font-semibold text-white tracking-tight">Daily Inspiration</h2>
-          </div>
-          <div className="-mx-4 sm:mx-0">
-             <RecipeFeed hideHeader={true} />
-          </div>
-      </section>
-
       {/* Featured Menus */}
+
       <section>
         <SectionHeader 
           title="Featured Menus" 

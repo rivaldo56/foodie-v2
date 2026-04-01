@@ -402,6 +402,7 @@ class OnboardingCompleteView(generics.GenericAPIView):
                 profile, created = ClientProfile.objects.get_or_create(user=user)
                 profile.preferred_cuisines = onboarding.preferred_cuisines
                 profile.allergies = onboarding.allergies
+                profile.allergies_details = onboarding.allergies_details
                 profile.location = onboarding.location
                 profile.budget_range = onboarding.budget_range
                 profile.occasion_types = onboarding.occasion_types

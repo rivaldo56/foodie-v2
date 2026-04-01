@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Calendar, Users, MapPin, Clock, DollarSign, MessageCircle, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { X, Calendar, Users, MapPin, Clock, DollarSign, MessageCircle, CheckCircle, XCircle, AlertTriangle, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Booking } from '@/services/booking.service';
+import RatingModal, { RatingData } from './RatingModal';
 
 interface BookingDetailModalProps {
     booking: Booking | null;
@@ -15,7 +16,8 @@ interface BookingDetailModalProps {
 export default function BookingDetailModal({ booking, isOpen, onClose, onStatusUpdate }: BookingDetailModalProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [actionType, setActionType] = useState<'accept' | 'reject' | null>(null);
+    const [actionType, setActionType] = useState<'accept' | 'reject' | 'complete' | null>(null);
+    const [showRating, setShowRating] = useState(false);
 
     if (!isOpen || !booking) return null;
 
@@ -64,12 +66,88 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onStatusU
 
             onStatusUpdate();
             onClose();
-        } catch (error) {
-            console.error('Error rejecting booking:', error);
-            alert('Failed to reject booking');
         } finally {
             setLoading(false);
             setActionType(null);
+        }
+    };
+
+    const handleMarkAsPaid = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/bookings/${booking.id}/status/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${localStorage.getItem('token')}`,
+                },
+                body: JSON.stringify({ external_payment_status: 'paid' }),
+            });
+
+            if (!response.ok) throw new Error('Failed to update payment status');
+
+            onStatusUpdate();
+        } catch (error) {
+            console.error('Error updating payment status:', error);
+            alert('Failed to update payment status');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCompleteService = async () => {
+        if (!confirm('Mark this service as completed? This will finalize the booking.')) return;
+        setLoading(true);
+        setActionType('complete');
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/bookings/${booking.id}/status/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${localStorage.getItem('token')}`,
+                },
+                body: JSON.stringify({ status: 'completed' }),
+            });
+
+            if (!response.ok) throw new Error('Failed to complete booking');
+
+            onStatusUpdate();
+        } catch (error) {
+            console.error('Error completing booking:', error);
+            alert('Failed to complete booking');
+        } finally {
+            setLoading(false);
+            setActionType(null);
+        }
+    };
+
+    const handleRatingSubmit = async (data: RatingData) => {
+        try {
+            const chefId = typeof booking.chef === 'object' ? booking.chef.id : booking.chef;
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/chefs/${chefId}/reviews/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${localStorage.getItem('token')}`,
+                },
+                body: JSON.stringify({
+                    booking: booking.id,
+                    rating: data.chefRating,
+                    platform_rating: data.platformRating,
+                    comment: data.comment,
+                    food_quality: data.chefRating,
+                    professionalism: data.chefRating,
+                    punctuality: data.chefRating,
+                }),
+            });
+
+            if (!response.ok) throw new Error('Failed to submit review');
+
+            onStatusUpdate();
+            setShowRating(false);
+        } catch (error) {
+            console.error('Error submitting review:', error);
+            alert('Failed to submit review');
         }
     };
 
@@ -192,7 +270,17 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onStatusU
                                 <span className="text-xs font-medium text-white/50 uppercase tracking-wide">Total Amount</span>
                             </div>
                             <p className="text-white font-bold text-lg">KSh {Number(booking.total_amount).toLocaleString()}</p>
-                            {booking.is_priority && (
+                            {booking.payment_mode === 'deposit_only' ? (
+                                <div className="mt-2 space-y-1">
+                                    <p className="text-xs text-orange-400 flex items-center gap-1 font-medium">
+                                        <Zap className="h-3.5 w-3.5" />
+                                        Deposit Paid: KSh {Number(booking.deposit_amount).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-white/40 font-medium">
+                                        Remaining: KSh {Number(Number(booking.total_amount) - Number(booking.deposit_amount)).toLocaleString()}
+                                    </p>
+                                </div>
+                            ) : booking.is_priority && (
                                 <p className="text-xs text-green-400 flex items-center gap-1 mt-2 font-medium">
                                     <CheckCircle className="h-3.5 w-3.5" />
                                     Priority ({Number(booking.down_payment_amount).toFixed(0)}% paid)
@@ -200,6 +288,27 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onStatusU
                             )}
                         </div>
                     </div>
+
+                    {/* External Payment Status (for Deposit Only) */}
+                    {booking.payment_mode === 'deposit_only' && (
+                        <div className={`rounded-2xl border p-5 flex items-center justify-between transition-all ${
+                            booking.external_payment_status === 'paid' 
+                                ? 'border-green-500/30 bg-green-500/10' 
+                                : 'border-blue-500/30 bg-blue-500/10'
+                        }`}>
+                            <div>
+                                <h3 className="text-xs font-medium text-white/50 mb-1 uppercase tracking-wide">External Payment (60%)</h3>
+                                <p className={`text-sm font-bold ${booking.external_payment_status === 'paid' ? 'text-green-400' : 'text-blue-400'}`}>
+                                    {booking.external_payment_status === 'paid' ? 'Status: Fully Paid' : 'Status: Pending Collection'}
+                                </p>
+                            </div>
+                            {booking.external_payment_status === 'paid' ? (
+                                <CheckCircle className="h-6 w-6 text-green-500" />
+                            ) : (
+                                <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                            )}
+                        </div>
+                    )}
 
                     {/* Location */}
                     <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 hover:from-white/10 hover:border-orange-500/20 transition-all">
@@ -263,106 +372,20 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onStatusU
                         Message
                     </button>
 
-                    {isPending && (
-                        <>
-                            <button
-                                onClick={handleReject}
-                                disabled={loading}
-                                className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/20 py-3.5 text-red-300 font-semibold hover:bg-red-500/30 hover:border-red-500/50 hover:text-red-200 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                            >
-                                {loading && actionType === 'reject' ? (
-                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-300 border-t-transparent" />
-                                ) : (
-                                    <XCircle className="h-5 w-5" />
-                                )}
-                                Reject
-                            </button>
-
-                            <button
-                                onClick={handleAccept}
-                                disabled={loading}
-                                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 py-3.5 text-white font-semibold hover:from-green-600 hover:to-green-700 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                            >
-                                {loading && actionType === 'accept' ? (
-                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                ) : (
-                                    <CheckCircle className="h-5 w-5" />
-                                )}
-                                Accept
-                            </button>
-                        </>
+                    {booking.payment_mode === 'deposit_only' && booking.external_payment_status !== 'paid' && booking.status === 'confirmed' && (
+                        <button
+                            onClick={handleMarkAsPaid}
+                            disabled={loading}
+                            className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/20 py-3.5 text-green-300 font-semibold hover:bg-green-500/30 hover:border-green-500/50 hover:text-green-200 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-green-300 border-t-transparent" />
+                            ) : (
+                                <DollarSign className="h-5 w-5" />
+                            )}
+                            Mark Paid (60%)
+                        </button>
                     )}
-                </div>
-            </div>
-        </div>
-    );
-}
-                        </div>
-                    </div>
-
-                    {/* Location */}
-                    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 hover:from-white/10 hover:border-orange-500/20 transition-all">
-                        <div className="flex items-center gap-2 mb-3">
-                            <div className="p-1.5 rounded-lg bg-orange-500/20">
-                                <MapPin className="h-4 w-4 text-orange-400" />
-                            </div>
-                            <span className="text-xs font-medium text-white/50 uppercase tracking-wide">Service Location</span>
-                        </div>
-                        <p className="text-white font-medium">{(booking as any).service_address || booking.service_address || (booking as any).address || 'Address not provided'}</p>
-                        <p className="text-sm text-white/60 mt-1">
-                            {[(booking as any).service_city || booking.service_city || (booking as any).city, 
-                              (booking as any).service_state || booking.service_state || (booking as any).state, 
-                              (booking as any).service_zip_code || booking.service_zip_code || (booking as any).zip_code].filter(Boolean).join(', ')}
-                        </p>
-                    </div>
-
-                    {/* Special Requests */}
-                    {booking.special_requests && (
-                        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 hover:from-white/10 hover:border-orange-500/20 transition-all">
-                            <h3 className="text-xs font-medium text-white/50 mb-3 uppercase tracking-wide">Special Requests</h3>
-                            <p className="text-white text-sm leading-relaxed">{booking.special_requests}</p>
-                        </div>
-                    )}
-
-                    {/* Dietary Requirements */}
-                    {booking.dietary_requirements && booking.dietary_requirements.length > 0 && (
-                        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 hover:from-white/10 hover:border-orange-500/20 transition-all">
-                            <h3 className="text-xs font-medium text-white/50 mb-3 uppercase tracking-wide">Dietary Requirements</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {booking.dietary_requirements.map((req, index) => (
-                                    <span
-                                        key={index}
-                                        className="px-3 py-1.5 rounded-full bg-white/10 text-white text-xs font-medium border border-white/5 hover:bg-white/20 transition-colors"
-                                    >
-                                        {req}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Warning for pending bookings */}
-                    {isPending && (
-                        <div className="rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 p-5 flex items-start gap-3 shadow-lg shadow-yellow-500/5">
-                            <div className="p-2 rounded-lg bg-yellow-500/20">
-                                <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-                            </div>
-                            <p className="text-sm text-yellow-100 leading-relaxed">
-                                This booking is pending your response. Please accept or reject it as soon as possible.
-                            </p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Actions with gradient background */}
-                <div className="sticky bottom-0 border-t border-white/10 bg-gradient-to-r from-orange-500/5 via-transparent to-transparent backdrop-blur-md p-6 flex gap-3">
-                    <button
-                        onClick={handleMessage}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/20 py-3.5 text-blue-300 font-semibold hover:bg-blue-500/30 hover:border-blue-500/50 hover:text-blue-200 transition-all hover:scale-105 active:scale-95"
-                    >
-                        <MessageCircle className="h-5 w-5" />
-                        Message
-                    </button>
 
                     {isPending && (
                         <>
@@ -393,7 +416,40 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onStatusU
                             </button>
                         </>
                     )}
+
+                    {booking.status === 'confirmed' && booking.external_payment_status === 'paid' && (
+                        <button
+                            onClick={handleCompleteService}
+                            disabled={loading}
+                            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 py-3.5 text-white font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all hover:scale-105"
+                        >
+                            {loading && actionType === 'complete' ? (
+                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : (
+                                <CheckCircle className="h-5 w-5" />
+                            )}
+                            Complete Service
+                        </button>
+                    )}
+
+                    {booking.status === 'completed' && !(booking as any).review && (
+                        <button
+                            onClick={() => setShowRating(true)}
+                            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-white font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20"
+                        >
+                            <Star className="h-5 w-5" />
+                            Rate Experience
+                        </button>
+                    )}
                 </div>
+
+                <RatingModal 
+                    isOpen={showRating} 
+                    onClose={() => setShowRating(false)} 
+                    bookingId={booking.id}
+                    chefName={typeof booking.chef === 'object' ? (booking.chef.user?.full_name || 'Chef') : 'Chef'}
+                    onSubmit={handleRatingSubmit}
+                />
             </div>
         </div>
     );

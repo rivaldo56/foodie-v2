@@ -1,4 +1,4 @@
-import { apiClient, apiRequest, ApiResponse } from '../lib/api';
+import api, { apiRequest, ApiResponse } from '../lib/api';
 
 export interface ClientOnboardingData {
     preferred_cuisines?: string[];
@@ -8,6 +8,7 @@ export interface ClientOnboardingData {
     dining_frequency?: string;
     location?: string;
     dietary_preferences?: string[];
+    allergies_details?: string;
 }
 
 export interface ChefOnboardingData {

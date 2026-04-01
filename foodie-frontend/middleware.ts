@@ -38,11 +38,18 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 3. Role-based Dashboard Redirect (Optional, but good for UX)
-  // If user is logged in and hits the root, maybe redirect to their dashboard?
-  // if (pathname === '/' && user) {
-  //   return NextResponse.redirect(new URL(`/${user.role}/home`, request.url));
-  // }
+  // 3. Role-based Dashboard Redirect
+  if (pathname === '/' && user) {
+    if (user.role === 'admin') {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    } else if (user.role === 'chef') {
+      const target = user.onboarding_status === 'complete' ? '/chef/dashboard' : '/chef-onboarding';
+      return NextResponse.redirect(new URL(target, request.url));
+    } else {
+      const target = user.onboarding_status === 'complete' ? '/client/home' : '/onboarding';
+      return NextResponse.redirect(new URL(target, request.url));
+    }
+  }
 
   return NextResponse.next();
 }

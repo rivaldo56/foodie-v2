@@ -5,6 +5,7 @@ import { X, ChevronLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import { Chef } from '@/services/chef.service';
 import { Booking, bookingService } from '@/services/booking.service';
 import CalendarWidget from '@/components/CalendarWidget';
+import PaymentChoice from './PaymentChoice';
 
 interface BookingModalProps {
     chef: Chef;
@@ -28,6 +29,7 @@ export default function BookingModal({ chef, isOpen, onClose, onSuccess }: Booki
     const [guestCount, setGuestCount] = useState(2);
     const [specialRequests, setSpecialRequests] = useState('');
     const [isPriority, setIsPriority] = useState(false);
+    const [paymentMode, setPaymentMode] = useState<'full_escrow' | 'deposit_only'>('full_escrow');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export default function BookingModal({ chef, isOpen, onClose, onSuccess }: Booki
             setGuestCount(2);
             setSpecialRequests('');
             setIsPriority(false);
+            setPaymentMode('full_escrow');
             setError(null);
         }
     }, [isOpen]);
@@ -51,7 +54,11 @@ export default function BookingModal({ chef, isOpen, onClose, onSuccess }: Booki
     const hourlyRate = chef.hourly_rate || 50; // Default fallback
     const durationHours = 3; // Hardcoded for now
     const estimatedTotal = hourlyRate * durationHours;
-    const downPaymentAmount = Math.round(estimatedTotal * 0.3); // 30% down payment
+    
+    // Deposit calculation (PRD: 40% for Deposit Only, 30% for Priority/Downpayment in legacy)
+    const depositAmount = paymentMode === 'deposit_only' 
+        ? Math.round(estimatedTotal * 0.4) 
+        : Math.round(estimatedTotal * 0.3);
 
     const handleSubmit = async () => {
         if (!selectedDate || !selectedTime) {
@@ -83,8 +90,9 @@ export default function BookingModal({ chef, isOpen, onClose, onSuccess }: Booki
                 serviceState: chef.state || 'Kenya',
                 serviceZipCode: '00100',
                 specialRequests: specialRequests,
-                isPriority: isPriority,
-                downPaymentAmount: isPriority ? downPaymentAmount : 0,
+                isPriority: isPriority || paymentMode === 'deposit_only',
+                downPaymentAmount: (isPriority || paymentMode === 'deposit_only') ? depositAmount : 0,
+                paymentMode: paymentMode,
             };
 
             const booking = await bookingService.createBooking(payload);
@@ -187,42 +195,53 @@ export default function BookingModal({ chef, isOpen, onClose, onSuccess }: Booki
                             />
                         </div>
 
-                        {/* Priority Booking Option */}
-                        <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 space-y-3">
-                            <label className="flex items-start gap-3 cursor-pointer group">
-                                <div className="relative flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={isPriority}
-                                        onChange={(e) => setIsPriority(e.target.checked)}
-                                        className="peer sr-only"
-                                    />
-                                    <div className="h-6 w-6 rounded-lg border-2 border-white/20 peer-checked:bg-orange-500 peer-checked:border-orange-500 transition-all"></div>
-                                    <CheckCircle className="absolute inset-0 h-6 w-6 text-white opacity-0 peer-checked:opacity-100 transition-opacity p-0.5" />
-                                </div>
-                                <div className="flex-1">
-                                    <span className="block text-white font-semibold group-hover:text-orange-400 transition-colors">
-                                        Commit (Priority Request)
-                                    </span>
-                                    <span className="text-white/60 text-sm">
-                                        Pay a down payment to prioritize your request and show commitment.
-                                    </span>
-                                </div>
-                            </label>
-
-                            {isPriority && (
-                                <div className="pl-9 text-sm">
-                                    <div className="flex justify-between items-center text-white/80 py-2 border-t border-white/10 mt-2">
-                                        <span>Estimated Total:</span>
-                                        <span>${estimatedTotal}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-orange-400 font-semibold py-1">
-                                        <span>Down Payment (30%):</span>
-                                        <span>${downPaymentAmount}</span>
-                                    </div>
-                                </div>
-                            )}
+                        {/* Payment Choice Component */}
+                        <div className="space-y-3 pt-4 border-t border-white/10">
+                            <PaymentChoice 
+                                totalAmount={estimatedTotal} 
+                                selectedMode={paymentMode} 
+                                onSelect={setPaymentMode} 
+                            />
                         </div>
+
+                        {/* Priority Booking Option (Optional Layer) */}
+                        {paymentMode === 'full_escrow' && (
+                            <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 space-y-3">
+                                <label className="flex items-start gap-3 cursor-pointer group">
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={isPriority}
+                                            onChange={(e) => setIsPriority(e.target.checked)}
+                                            className="peer sr-only"
+                                        />
+                                        <div className="h-6 w-6 rounded-lg border-2 border-white/20 peer-checked:bg-orange-500 peer-checked:border-orange-500 transition-all"></div>
+                                        <CheckCircle className="absolute inset-0 h-6 w-6 text-white opacity-0 peer-checked:opacity-100 transition-opacity p-0.5" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <span className="block text-white font-semibold group-hover:text-orange-400 transition-colors">
+                                            Priority Request
+                                        </span>
+                                        <span className="text-white/60 text-sm">
+                                            Pay a 30% down payment to prioritize your request.
+                                        </span>
+                                    </div>
+                                </label>
+
+                                {isPriority && (
+                                    <div className="pl-9 text-sm">
+                                        <div className="flex justify-between items-center text-white/80 py-2 border-t border-white/10 mt-2">
+                                            <span>Estimated Total:</span>
+                                            <span>${estimatedTotal}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-orange-400 font-semibold py-1">
+                                            <span>Down Payment (30%):</span>
+                                            <span>${depositAmount}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -247,7 +266,9 @@ export default function BookingModal({ chef, isOpen, onClose, onSuccess }: Booki
                             </>
                         ) : (
                             <span>
-                                {isPriority ? `Pay $${downPaymentAmount} & Book` : 'Send Request'}
+                                {paymentMode === 'deposit_only' 
+                                    ? `Pay $${depositAmount} & Book` 
+                                    : (isPriority ? `Pay $${depositAmount} & Book` : 'Send Request')}
                             </span>
                         )}
                     </button>

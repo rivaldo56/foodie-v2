@@ -92,11 +92,21 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         booking_id = validated_data.pop("booking_id")
         booking = Booking.objects.get(id=booking_id)
 
-        # Calculate platform fees (example: 5% platform fee + 3% processing fee)
+        # Calculate platform fees
+        # Deposit Only: 5% platform fee (within the 40% deposit)
+        # Full Escrow: 5% platform fee + 3% processing fee
         amount = validated_data["amount"]
-        platform_fee = amount * 0.05
-        processing_fee = amount * 0.03
-        chef_payout = amount - platform_fee - processing_fee
+        payment_type = "full_payment"
+        
+        if booking.payment_mode == "deposit_only":
+            payment_type = "deposit"
+            platform_fee = booking.total_amount * 0.05
+            processing_fee = 0.00
+            chef_payout = amount - platform_fee  # 35% of total
+        else:
+            platform_fee = amount * 0.05
+            processing_fee = amount * 0.03
+            chef_payout = amount - platform_fee - processing_fee
 
         payment = Payment.objects.create(
             booking=booking,
@@ -104,6 +114,7 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
             platform_fee=platform_fee,
             processing_fee=processing_fee,
             chef_payout=chef_payout,
+            payment_type=payment_type,
             **validated_data
         )
 
@@ -189,7 +200,26 @@ class RefundCreateSerializer(serializers.ModelSerializer):
         amount = attrs["amount"]
 
         payment = Payment.objects.get(id=payment_id)
-        if amount > payment.amount:
+        booking = payment.booking
+        
+        # PRD Refund Rule: 30% of deposit if cancelled > 48h before event
+        if booking.payment_mode == "deposit_only":
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            time_until_event = booking.booking_date - timezone.now()
+            if time_until_event >= timedelta(hours=48):
+                allowed_refund = payment.amount * Decimal("0.30")
+                if amount > allowed_refund:
+                    raise serializers.ValidationError(
+                        f"For Deposit Only bookings cancelled >48h before event, "
+                        f"the maximum refund is 30% of the deposit ({allowed_refund} {payment.currency})"
+                    )
+            else:
+                raise serializers.ValidationError(
+                    "Deposit is non-refundable within 48 hours of the event"
+                )
+        elif amount > payment.amount:
             raise serializers.ValidationError(
                 "Refund amount cannot exceed payment amount"
             )
@@ -280,6 +310,12 @@ class ChefPayoutCreateSerializer(serializers.ModelSerializer):
             ).exists():
                 raise serializers.ValidationError(
                     "Payout already exists for this payment"
+                )
+
+            # PRD: Disable payout creation for Deposit Only bookings in Phase 1
+            if payment.booking.payment_mode == "deposit_only":
+                raise serializers.ValidationError(
+                    "Payouts are handled externally for Deposit Only bookings"
                 )
 
             return value

@@ -157,6 +157,7 @@ class ChefReviewSerializer(serializers.ModelSerializer):
             "food_quality",
             "professionalism",
             "punctuality",
+            "platform_rating",
             "created_at",
             "updated_at",
         ]

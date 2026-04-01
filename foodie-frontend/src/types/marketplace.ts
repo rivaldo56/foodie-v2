@@ -3,6 +3,7 @@ export type MenuStatus = 'active' | 'inactive';
 export type BookingStatus = 
   | 'pending' 
   | 'confirmed' 
+  | 'deposit_paid'
   | 'in_progress' 
   | 'completed' 
   | 'canceled' 
@@ -55,6 +56,9 @@ export interface Booking {
   guests_count: number;
   status: BookingStatus;
   total_price: number;
+  deposit_amount: number;
+  payment_mode: 'full_escrow' | 'deposit_only';
+  external_payment_status: 'pending' | 'paid' | 'not_required';
   special_requests: string | null;
   created_at: string;
   updated_at: string;
