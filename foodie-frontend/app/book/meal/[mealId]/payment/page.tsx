@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
+import { apiRequest } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,9 +18,10 @@ import { initiateMpesaPayment, checkPaymentStatus } from '@/services/payment.ser
 type Meal = {
   id: string;
   name: string;
-  price: number;
-  image_url: string | null;
-  category: string;
+  price?: number;
+  image?: string;
+  image_url?: string | null;
+  category?: string;
 };
 
 function MealPaymentPageContent() {
@@ -55,14 +56,12 @@ function MealPaymentPageContent() {
   useEffect(() => {
     async function fetchMeal() {
       try {
-        const { data, error } = await supabase
-          .from('meals')
-          .select('*')
-          .eq('id', mealId)
-          .single();
-        
-        if (error) throw error;
-        setMeal(data as any);
+        const response = await apiRequest<Meal>({ url: `/api/experiences/meals/${mealId}/` });
+        if (!response.error && response.data) {
+          setMeal(response.data);
+        } else {
+          throw new Error(response.error || 'Failed to fetch meal');
+        }
       } catch (err) {
         console.error('Error fetching meal for payment:', err);
       } finally {
@@ -159,14 +158,14 @@ function MealPaymentPageContent() {
           <div className="rounded-3xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl">
             <div className="aspect-video relative">
               <Image 
-                src={meal?.image_url || 'https://images.unsplash.com/photo-1546069901-eacef0df6022?auto=format&fit=crop&w=800&q=80'} 
+                src={meal?.image || meal?.image_url || 'https://images.unsplash.com/photo-1546069901-eacef0df6022?auto=format&fit=crop&w=800&q=80'} 
                 alt={meal?.name || 'Meal'} 
                 fill 
                 className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <div className="absolute bottom-4 left-6">
-                <p className="text-accent text-xs font-bold uppercase tracking-widest mb-1">{meal?.category}</p>
+                <p className="text-accent text-xs font-bold uppercase tracking-widest mb-1">{meal?.category || 'Special Offering'}</p>
                 <p className="text-xl font-bold">{meal?.name}</p>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase'; // Using client for now, or use Admin client if updating status
+// import { supabase } from '@/lib/supabase'; // Using client for now, or use Admin client if updating status
 
 // This is a placeholder for a real payment webhook (e.g. Stripe, M-Pesa)
 export async function POST(request: Request) {
