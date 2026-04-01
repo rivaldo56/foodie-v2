@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, DollarSign, UtensilsCrossed, Loader2 } from 'lucide-react';
-import { api } from '@/lib/api';
-import { useAuth } from '@/hooks/useAuth';
+import api from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardStats {
   kpis: {
