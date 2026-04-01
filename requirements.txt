@@ -24,3 +24,4 @@ python-dotenv==1.0.01
 dj-database-url==2.1.0
 django-redis==5.4.0
 django-anymail[sendgrid]==11.1
+setuptools==70.3.0
