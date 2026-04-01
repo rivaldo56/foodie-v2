@@ -19,10 +19,12 @@ export interface Experience {
   name: string;
   description: string | null;
   category: string;
-  image_url: string | null;
+  image?: string | null;
+  image_url?: string | null;
   is_featured: boolean;
   status: ExperienceStatus;
   slug: string | null;
+  startingPrice?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -37,7 +39,8 @@ export interface Menu {
   guest_min: number;
   guest_max: number;
   dietary_tags: string[];
-  image_url: string | null;
+  image?: string | null;
+  image_url?: string | null;
   status: MenuStatus;
   featured: boolean;
   is_instant_book?: boolean;

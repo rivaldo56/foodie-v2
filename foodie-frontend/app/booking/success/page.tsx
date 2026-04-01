@@ -86,6 +86,7 @@ function BookingSuccessPageContent() {
     // Polling for status updates
     const interval = setInterval(fetchBooking, 5000);
     return () => clearInterval(interval);
+  }, [bookingId, params]);
 
   // ── Realtime subscription ──────────────────────────────────────────────────
   // Realtime subscription removed - replaced by polling above
